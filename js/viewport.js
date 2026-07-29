@@ -1,0 +1,18 @@
+"use strict";
+window.TonalValueDesignerViewport=function({container,stage,canvas,onTap,onChange}){
+ const MIN=.1,MAX=8,SLOP=7;let scale=1,x=0,y=0,start=null,moved=false,pinch=null,interactionEnabled=true,singlePointerEnabled=true,tapEnabled=true;const pointers=new Map();
+ const size=()=>({w:container.clientWidth,h:container.clientHeight});
+ function clampPan(){const{w,h}=size(),cw=canvas.width*scale,ch=canvas.height*scale,m=48;x=cw<=w?(w-cw)/2:Math.min(m,Math.max(w-cw-m,x));y=ch<=h?(h-ch)/2:Math.min(m,Math.max(h-ch-m,y));}
+ function render(){clampPan();stage.style.width=`${canvas.width}px`;stage.style.height=`${canvas.height}px`;stage.style.transform=`translate(${x}px,${y}px) scale(${scale})`;onChange?.(scale);}
+ function setScale(next,cx,cy){next=Math.min(MAX,Math.max(MIN,next));const r=container.getBoundingClientRect();cx??=r.left+r.width/2;cy??=r.top+r.height/2;const lx=cx-r.left,ly=cy-r.top,ix=(lx-x)/scale,iy=(ly-y)/scale;scale=next;x=lx-ix*scale;y=ly-iy*scale;render();}
+ function fit(){const{w,h}=size();scale=Math.min(MAX,w/canvas.width,h/canvas.height);x=(w-canvas.width*scale)/2;y=(h-canvas.height*scale)/2;render();}
+ function imagePoint(cx,cy){const r=container.getBoundingClientRect();return{x:Math.floor((cx-r.left-x)/scale),y:Math.floor((cy-r.top-y)/scale)};}
+ container.addEventListener("wheel",e=>{if(!interactionEnabled)return;e.preventDefault();setScale(scale*Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);},{passive:false});
+ container.addEventListener("pointerdown",e=>{if(!interactionEnabled)return;e.preventDefault();container.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});start=singlePointerEnabled?{x:e.clientX,y:e.clientY,panX:x,panY:y}:null;moved=false;if(pointers.size===2){const p=[...pointers.values()];pinch={d:Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y),scale};}if(singlePointerEnabled)container.classList.add("is-panning");});
+ container.addEventListener("pointermove",e=>{if(!interactionEnabled||!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y);moved=true;setScale(pinch.scale*d/pinch.d,(p[0].x+p[1].x)/2,(p[0].y+p[1].y)/2);}else if(start){const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.hypot(dx,dy)>SLOP)moved=true;if(moved){x=start.panX+dx;y=start.panY+dy;render();}}});
+ function end(e){if(!interactionEnabled)return;const tap=tapEnabled&&singlePointerEnabled&&!moved&&pointers.size===1;pointers.delete(e.pointerId);container.classList.remove("is-panning");if(tap)onTap?.(imagePoint(e.clientX,e.clientY));start=null;pinch=null;}
+ container.addEventListener("pointerup",end);container.addEventListener("pointercancel",end);container.addEventListener("lostpointercapture",()=>{pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");});window.addEventListener("resize",()=>canvas.width&&render());
+ function setInteractionEnabled(enabled){interactionEnabled=Boolean(enabled);if(!interactionEnabled){pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}}
+ function setSinglePointerEnabled(enabled){singlePointerEnabled=Boolean(enabled);pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}
+ function setTapEnabled(enabled){tapEnabled=Boolean(enabled);}
+ return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,imagePoint,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};};

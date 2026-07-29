@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
+    <title>TonalValueDesigner</title>
+    <link rel="stylesheet" href="styles/styles.css?v=1.8.2">
+    <style>
+        body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+        .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
+        .control-panel{min-height:0;overflow-y:auto;padding-right:.25rem;scrollbar-gutter:stable}
+        .image-panel{min-height:0;height:100%;overflow-y:auto;scrollbar-gutter:stable}
+        .layout-splitter{position:relative;min-height:0;cursor:col-resize;touch-action:none;border-radius:.35rem;outline:none}
+        .layout-splitter::before{content:"";position:absolute;inset:.4rem 50%;width:3px;transform:translateX(-50%);border-radius:2px;background:#b7bcc3}
+        .layout-splitter:hover::before,.layout-splitter.is-resizing::before,.layout-splitter:focus-visible::before{width:5px;background:#4678c8}
+        .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.3rem;padding:.35rem;background:#e5e8ec;border:1px solid #c7ccd2;border-radius:.55rem;position:sticky;top:0;z-index:3}
+        .tab-button{min-width:0;min-height:3.1rem;padding:.4rem .3rem;font-size:.83rem;line-height:1.15}
+        .tab-button[aria-selected="true"]{color:#fff;background:#3569ad;border-color:#234d84;box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
+        .tab-panel{display:flex;flex-direction:column;gap:1rem}
+        .tab-panel[hidden]{display:none}
+        .preset-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;margin:.6rem 0}
+        .preset-row button{min-width:0;padding:.55rem .25rem;line-height:1.15}
+        #mapValues{width:100%;min-height:2.7rem;padding:.55rem .65rem;border:1px solid #aeb4bc;border-radius:.4rem;background:#fff}
+        .value-map-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.75rem}
+        .map-status,.massing-status,.paint-status,.mass-selection-status{margin:.65rem 0 0;color:#5d636b;font-size:.9rem}
+        .map-status.error,.massing-status.error,.paint-status.error,.mass-selection-status.error{color:#8b2525}
+        .value-legend{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.75rem}
+        .legend-item{display:flex;align-items:center;gap:.3rem;padding:.25rem .45rem;border:1px solid #d6d9dd;border-radius:.35rem;background:#fafafa;font-size:.85rem}
+        .legend-swatch{width:1.4rem;height:1.4rem;border:1px solid #888}
+        .massing-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;margin-top:.75rem}
+        .massing-actions button.active-mode,.massing-actions button.active-mode:disabled{color:#fff;background:#3569ad;border-color:#234d84;opacity:1;box-shadow:inset 0 2px 4px rgba(0,0,0,.35),0 0 0 3px rgba(70,120,200,.28)}
+        .mass-selection-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;margin-top:.75rem}
+        .mass-selection-actions button.active-mode,.mass-selection-actions button.active-mode:disabled{color:#fff;background:#3569ad;border-color:#234d84;opacity:1;box-shadow:inset 0 2px 4px rgba(0,0,0,.35),0 0 0 3px rgba(70,120,200,.28)}
+        #cancelMassSelection{grid-column:1/-1}
+        .paint-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;margin-top:.75rem}
+        .paint-actions button.active-mode,.paint-actions button.active-mode:disabled{color:#fff;background:#3569ad;border-color:#234d84;opacity:1;box-shadow:inset 0 2px 4px rgba(0,0,0,.35),0 0 0 3px rgba(70,120,200,.28)}
+        #donePainting{grid-column:1/-1}
+        .viewport-toolbar button.active-mode{color:#fff;background:#3569ad;border-color:#234d84;box-shadow:inset 0 2px 4px rgba(0,0,0,.35)}
+        .canvas-container:not(.is-panning){cursor:crosshair}
+        .canvas-container.drawing-area{cursor:crosshair}
+        .canvas-container.drawing-area #imageCanvas{filter:saturate(.9)}
+        .canvas-container.selecting-mass{cursor:crosshair}
+        .canvas-container.painting-value{cursor:none}
+        .canvas-container.paint-pan:not(.is-panning){cursor:grab}
+        .canvas-container.explicit-pan:not(.is-panning){cursor:grab}
+        .mode-indicator{margin-left:auto;color:#d1d5da;font-size:.85rem}
+        .collapsible-panel{flex:none;padding:0;overflow:hidden}
+        .collapsible-panel>summary,.color-details>summary{padding:1rem;font-weight:700;cursor:pointer;list-style-position:inside}
+        .collapsible-panel>summary:hover,.color-details>summary:hover{background:#f7f8fa}
+        .collapsible-content{padding:0 1rem 1rem}
+        .color-details{border:1px solid #d8dce1;border-radius:.45rem;background:#fafafa}
+        .color-details>summary{padding:.7rem .8rem}
+        .color-details-content{padding:0 .75rem .75rem}
+        .sample-swatch-row{display:flex;align-items:center;gap:.75rem}
+        .sample-swatch-row .color-preview{flex:0 0 auto}
+        .usage-notes{margin:.25rem 0 0;padding-left:1.25rem;color:#4d535b}
+        .usage-notes li+li{margin-top:.45rem}
+        .usage-notes ul{margin:.4rem 0 0;padding-left:1.2rem}
+        .about-link{min-height:auto;margin-top:.25rem;padding:0;color:#d8e7ff;background:transparent;border:0;border-radius:0;font-size:.82rem;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+        .about-link:hover{color:#fff;background:transparent}
+        .about-dialog{width:min(48rem,calc(100vw - 2rem));max-height:calc(100vh - 2rem);padding:0;border:1px solid #aeb4bc;border-radius:.7rem;box-shadow:0 1rem 3rem rgba(0,0,0,.38)}
+        .about-dialog::backdrop{background:rgba(15,18,22,.68)}
+        .about-dialog-content{max-height:calc(100vh - 2rem);overflow-y:auto;padding:1.4rem 1.5rem 1.5rem}
+        .about-dialog h2{margin:0;font-size:1.55rem}
+        .about-byline{margin:.15rem 0 1rem;color:#5d636b;font-weight:650}
+        .about-introduction{margin:0 0 1rem}
+        .about-workflow{margin:0;padding-left:1.45rem}
+        .about-workflow li+li{margin-top:1rem}
+        .about-workflow p{margin:.35rem 0 0}
+        .about-close-row{position:sticky;bottom:-1.5rem;display:flex;justify-content:flex-end;margin:1.25rem -1.5rem -1.5rem;padding:.8rem 1.5rem;background:#fff;border-top:1px solid #d9dde2}
+        @media(max-width:900px){
+            body{height:auto;display:block;overflow:auto}
+            .app-layout{height:auto;grid-template-columns:1fr;gap:.85rem}
+            .layout-splitter{display:none}
+            .control-panel{overflow:visible;padding-right:0}
+            .image-panel{height:auto;overflow:hidden;position:sticky;top:0;z-index:4}
+            .tabs{position:static}
+        }
+        @media(max-width:560px){
+            .preset-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .value-map-actions button{flex:1}
+            .mode-indicator{width:100%;margin-left:0;text-align:center}
+            .tab-button{font-size:.76rem}
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div><h1>TonalValueDesigner</h1><p class="subtitle">Sample a photograph and estimate its painter's value.</p></div>
+        <div class="version-badge"><span id="appVersion">v1.8.2</span><span id="buildDate">Built 2026-07-29</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
+    </header>
+
+    <main id="appLayout" class="app-layout">
+        <aside class="control-panel">
+            <div class="panel-section">
+                <h2>Open a photograph</h2>
+                <label class="file-button" for="imageFile">Choose Image</label>
+                <input id="imageFile" type="file" accept="image/*">
+                <p id="fileName" class="status-text">No image selected.</p>
+            </div>
+
+            <nav class="tabs" role="tablist" aria-label="TonalValueDesigner tools">
+                <button id="samplingTabButton" class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="samplingTab">Value<br>Sampling</button>
+                <button id="mapTabButton" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mapTab" tabindex="-1">Create<br>Value Map</button>
+                <button id="massingTabButton" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="massingTab" tabindex="-1">Value<br>Massing</button>
+            </nav>
+
+            <section id="samplingTab" class="tab-panel" role="tabpanel" aria-labelledby="samplingTabButton">
+                <div class="panel-section">
+                    <h2>Tap or click the image</h2>
+                    <div id="emptyResult" class="empty-result">Select a representative area to measure.</div>
+                    <div id="measurementResult" class="measurement-result" hidden>
+                        <div class="value-display"><span class="value-label">Painter's Value</span><strong id="painterValue">—</strong><span class="value-scale-note">on a 1–10 scale</span></div>
+                        <div id="targetComparison" class="target-comparison" hidden><span id="targetMessage"></span></div>
+                        <div class="sample-swatch-row"><div id="colorPreview" class="color-preview" aria-label="Sampled color"></div><span>Sampled color</span></div>
+                        <details class="color-details">
+                            <summary>Color Details</summary>
+                            <div class="color-details-content">
+                                <div class="coordinate-label">Image position</div><div id="sampleCoordinates">—</div>
+                                <div class="measurement-grid">
+                                    <div class="measurement-card"><h3>CIELAB</h3><dl><div><dt>L*</dt><dd id="labL">—</dd></div><div><dt>a*</dt><dd id="labA">—</dd></div><div><dt>b*</dt><dd id="labB">—</dd></div></dl></div>
+                                    <div class="measurement-card"><h3>RGB</h3><dl><div><dt>Red</dt><dd id="rgbR">—</dd></div><div><dt>Green</dt><dd id="rgbG">—</dd></div><div><dt>Blue</dt><dd id="rgbB">—</dd></div></dl></div>
+                                    <div class="measurement-card"><h3>Additional</h3><dl><div><dt>Hex</dt><dd id="hexValue">—</dd></div><div><dt>Sample</dt><dd id="sampleDimensions">—</dd></div></dl></div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <details class="panel-section collapsible-panel">
+                    <summary>Sampling Options</summary>
+                    <div class="collapsible-content">
+                        <label for="sampleSize">Average an area around the selected point:</label>
+                        <select id="sampleSize"><option value="1">1 × 1</option><option value="3">3 × 3</option><option value="5" selected>5 × 5</option><option value="9">9 × 9</option><option value="15">15 × 15</option></select>
+                        <p class="help-text">A 5 × 5 or 9 × 9 average is usually most stable.</p>
+                    </div>
+                </details>
+                <div class="panel-section">
+                    <h2>Optional value target</h2>
+                    <label for="targetValue">Planned value:</label>
+                    <div class="target-input-row"><input id="targetValue" type="number" min="1" max="10" step="0.1" placeholder="For example, 6"><button id="clearTargetButton" type="button">Clear</button></div>
+                    <label for="targetTolerance">Acceptable difference:</label>
+                    <select id="targetTolerance"><option value="0.2">± 0.2</option><option value="0.3" selected>± 0.3</option><option value="0.5">± 0.5</option><option value="1">± 1.0</option></select>
+                </div>
+            </section>
+
+            <section id="mapTab" class="tab-panel" role="tabpanel" aria-labelledby="mapTabButton" hidden>
+                <div class="panel-section">
+                    <h2>Painter's Value Map</h2>
+                    <label for="mapValues">Values to retain:</label>
+                    <input id="mapValues" type="text" value="2, 5, 8" inputmode="decimal" aria-describedby="mapHelp">
+                    <div class="preset-row"><button type="button" data-values="1, 10">Notan</button><button type="button" data-values="2, 5, 8">3 Values</button><button type="button" data-values="1, 3, 5, 7, 9">5 Values</button><button type="button" data-values="1, 2.5, 4, 5.5, 7, 8.5, 10">7 Values</button></div>
+                    <p id="mapHelp" class="help-text">Enter any two or more values from 1 to 10, separated by commas.</p>
+                    <div class="value-map-actions"><button id="generateMap" type="button">Generate Map</button><button id="showOriginal" type="button" disabled>Show Original</button><button id="saveMap" type="button" disabled>Save PNG</button></div>
+                    <p id="mapStatus" class="map-status">Open a photograph to begin.</p>
+                    <div id="valueLegend" class="value-legend" hidden></div>
+                </div>
+            </section>
+
+            <section id="massingTab" class="tab-panel" role="tabpanel" aria-labelledby="massingTabButton" hidden>
+                <div class="panel-section">
+                    <h2>Value Massing: By Area</h2>
+                    <label for="massingValue">Normalize the drawn area to:</label>
+                    <select id="massingValue" disabled><option>Generate a value map first</option></select>
+                    <div class="massing-actions"><button id="drawArea" type="button" aria-pressed="false" disabled>Draw Area</button><button id="applyMassing" type="button" disabled>Apply Value</button><button id="cancelMassing" type="button" disabled>Cancel Drawing</button><button id="undoMassing" type="button" disabled>Undo Last</button></div>
+                    <p id="massingStatus" class="massing-status">Generate a value map to enable massing.</p>
+                </div>
+                <div class="panel-section">
+                    <h2>Value Massing: Paint Value</h2>
+                    <label for="paintValue">Painter's Value:</label>
+                    <select id="paintValue" disabled><option>Generate a value map first</option></select>
+                    <label for="brushSize">Brush size:</label>
+                    <select id="brushSize" disabled><option value="1">Fine</option><option value="2" selected>Medium</option><option value="3">Broad</option><option value="4">Very Broad</option></select>
+                    <div class="paint-actions"><button id="beginPainting" type="button" aria-pressed="false" disabled>Paint Value</button><button id="undoPaint" type="button" disabled>Undo Last</button><button id="donePainting" type="button" disabled>Done Painting</button></div>
+                    <p id="paintStatus" class="paint-status">Generate a value map to enable painting.</p>
+                </div>
+                <div class="panel-section">
+                    <h2>Select and Adjust Value Mass</h2>
+                    <label for="selectedMassValue">Change the selected mass to:</label>
+                    <select id="selectedMassValue" disabled><option>Generate a value map first</option></select>
+                    <div class="mass-selection-actions"><button id="selectMass" type="button" aria-pressed="false" disabled>Select Mass</button><button id="applyMassValue" type="button" disabled>Apply Value</button><button id="addSelectionArea" type="button" aria-pressed="false" disabled>Add Area</button><button id="removeSelectionArea" type="button" aria-pressed="false" disabled>Remove Area</button><button id="cancelMassSelection" type="button" disabled>Cancel Selection</button></div>
+                    <p id="massSelectionStatus" class="mass-selection-status">Generate a value map to select individual masses.</p>
+                </div>
+            </section>
+
+            <details class="panel-section collapsible-panel note-section">
+                <summary>Measurement Tips and Limitations</summary>
+                <div class="collapsible-content">
+                    <ul class="usage-notes">
+                        <li>TonalValueDesigner measures the appearance in a photograph, not an intrinsic paint property.</li>
+                        <li>This estimate comes from a photograph. Exposure, white balance, glare, shadows, and room lighting affect the result.</li>
+                        <li>To sample the value of mixed paint while painting, the following process is recommended:
+                            <ul>
+                                <li>For comparison, photograph samples in the same frame, lighting, and orientation.</li>
+                                <li>Do not sample piles of paint on your palette; these can read differently from paint applied to your canvas.</li>
+                                <li>Paint a swatch on or next to your canvas on the easel, in the same lighting and orientation as the canvas.</li>
+                                <li>Avoid visible glare.</li>
+                                <li>Sample representative flat areas—not highlights or texture shadows.</li>
+                            </ul>
+                        </li>
+                        <li>Thin or transparent paint can be influenced by the underlying ground.</li>
+                    </ul>
+                </div>
+            </details>
+        </aside>
+
+        <div id="layoutSplitter" class="layout-splitter" role="separator" aria-label="Resize controls and image workspace" aria-orientation="vertical" aria-valuemin="280" aria-valuenow="384" tabindex="0"></div>
+
+        <section class="image-panel">
+            <div id="viewportToolbar" class="viewport-toolbar" hidden><button id="zoomOut" type="button" aria-label="Zoom out">−</button><output id="zoomLevel">100%</output><button id="zoomIn" type="button" aria-label="Zoom in">+</button><button id="fitImage" type="button">Fit Image</button><button id="actualSize" type="button">100%</button><button id="panImage" type="button" aria-pressed="false">Pan Image</button><span id="modeIndicator" class="mode-indicator">Original</span></div>
+            <div id="imagePlaceholder" class="image-placeholder"><div><strong>No image loaded</strong><p>Choose a photograph of your palette, painting, or reference.</p></div></div>
+            <div id="canvasContainer" class="canvas-container" hidden><div id="canvasStage" class="canvas-stage"><canvas id="imageCanvas" aria-label="Loaded image. Tap to sample; drag to pan."></canvas></div></div>
+            <div class="image-instructions"><p>Tap to sample. Drag to pan. Use the wheel or pinch to zoom.</p></div>
+        </section>
+    </main>
+
+    <dialog id="aboutDialog" class="about-dialog" aria-labelledby="aboutTitle">
+        <div class="about-dialog-content">
+            <h2 id="aboutTitle">Tonal Value Designer</h2>
+            <p class="about-byline">by Ron Downer</p>
+            <p class="about-introduction">Tonal Value Designer is a tool that streamlines the execution of value studies and design decisions based on those value studies leading to a “value plan” for a particular painting. Further, it can be used to validate the resulting artwork conforms to that value plan. To do this it supports the following work process:</p>
+            <ol class="about-workflow">
+                <li><strong>Select a reference image.</strong> Select an image on your local device.</li>
+                <li><strong>Create a preliminary value map.</strong> This creates a black and white representation of your image - reduces to a number of discrete values. The number of values is up to you.</li>
+                <li><strong>Mass Values.</strong>
+                    <p>In order to reduce the complexity of a given image, it is important to simplify the values represented in the value map. One way is to mass values. This means to reduce the value “noise” in a given area of the image by making everything in a designated area a single value. In this way, a large area of value 6, for example, that has little flecks of other values can be simplified to ONLY have value 6 in that value mass. Also, nearby features of the same or similar value can be “massed” into a larger value shape.</p>
+                    <p>Values can be massed in a number of ways, like by drawing a free-form shape or by using a digital “paintbrush” to paint over unwanted complexity.</p>
+                </li>
+                <li><strong>Conduct what-if studies.</strong>
+                    <p>The power of value studies is the ability to OVERRIDE the values as represented in the reference image to make the image and resulting painting more pleasing, more readable, or more dramatic. AND the reason an artists creates several value studies is to determine which value combinations best serve his/her artistic goals. To do this, an artist must be able to change the values as initially captured in the value map. For example, the overall composition may be more pleasing if the sky is a darker value - or a lighter value. They same with other key elements or value masses in the initially generated value map. Various iterations of value studies can be saved locally, to be compared to one another outside of the tool. One will be selected as the go-forward value design or value map.</p>
+                </li>
+                <li><strong>Lastly, validate the values you are painting, align with the values in your value map.</strong>
+                    <p>to do this, mix your desired color and paint a small swatch or sample on your canvas / paper. Make sure the sample is in the same lighting and orientation (on your easel, or on your table) as your painting. With this feedback you can then alter the mixed color, if needed.</p>
+                </li>
+            </ol>
+            <div class="about-close-row"><button id="closeAbout" type="button">Close</button></div>
+        </div>
+    </dialog>
+
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.8.2</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/version.js?v=1.8.2"></script><script src="js/color.js?v=1.8.2"></script><script src="js/valueMap.js?v=1.8.2"></script><script src="js/massing.js?v=1.8.2"></script><script src="js/massSelection.js?v=1.8.2"></script><script src="js/valueBrush.js?v=1.8.2"></script><script src="js/viewport.js?v=1.8.2"></script><script src="js/app.js?v=1.8.2"></script>
+</body>
+</html>
