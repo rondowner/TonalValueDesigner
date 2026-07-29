@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.8.2
+# TonalValueDesigner 1.10.0
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -57,7 +57,25 @@ The presets include **Notan** (Values 1 and 10) plus three-, five-, and seven-va
 4. If necessary, use **Remove Area** and draw around an unwanted part of the selection, or use **Add Area** to extend it.
 5. Choose a retained Painter's Value and select **Apply Value**.
 
-Add Area and Remove Area change only the blue selection mask; they do not alter the value map. Escape cancels the current refinement boundary while retaining the selected mass. **Cancel Selection** clears the whole selection, and **Undo Last** restores an applied value change.
+Add Area and Remove Area change only the blue selection mask; they do not alter the value map. Escape cancels the current refinement boundary while retaining the selected mass. **Cancel Selection** clears the whole selection. The adjacent **Undo Last** button restores the most recent applied massing or value change.
+
+## Identify Features — AI prototype
+
+After generating a value map, open the **Value Massing** tab and select **Analyze Image**. A compact semantic-segmentation model runs in the browser and proposes broad features such as sky, mountains, trees, roads, buildings, fields, and water.
+
+- The first analysis downloads and caches an approximately 4.5 MB quantized model plus its browser runtime.
+- The reference photograph is processed on the device and is not uploaded for inference.
+- Analysis intentionally favors broad, thumbnail-scale regions over photographic boundary precision.
+- Only individual regions covering at least 2% of the complete image are shown, suppressing minor and frequently incorrect AI fragments.
+- Disconnected regions within one category are offered as separate features when each is large enough to matter.
+- Choose a detected feature and select **Select Feature** to highlight it in the value map.
+- Select **Split Feature by Value** to divide the highlighted parent feature using the current Painter's Value Map. Divisions smaller than 2% of the selected feature are suppressed.
+- Value divisions appear beneath their parent in the feature list with names such as `Sky — Value 5` and `Sky — Value 9`, and can be selected independently.
+- Use the existing Add Area, Remove Area, and Apply Value controls to correct or redesign the proposed feature.
+
+Feature identification is advisory. The artist remains responsible for deciding which real-world features should be joined or separated as compositional value masses. Internet access is required the first time the AI runtime and model are downloaded.
+
+The prototype pins Transformers.js 3.8.1 and uses the quantized `Xenova/segformer-b0-finetuned-ade-512-512` ONNX model, derived from NVIDIA's ADE20K SegFormer model. Review the upstream model card and license metadata before treating this prototype dependency as a final production distribution choice.
 
 ## Value Massing: By Area
 
@@ -92,6 +110,7 @@ TonalValueDesigner/
 |   |-- massing.js
 |   |-- massSelection.js
 |   |-- valueBrush.js
+|   |-- featureSegmentation.js
 |   |-- version.js
 |   `-- viewport.js
 `-- styles/
@@ -112,4 +131,4 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.8.2 was built on 2026-07-29. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.
+The header and footer display the running version. Version 1.10.0 was built on 2026-07-29. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.

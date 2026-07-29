@@ -6,12 +6,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!window.TonalValueDesignerColor || !window.TonalValueDesignerValueMap ||
         !window.TonalValueDesignerMassing || !window.TonalValueDesignerMassSelection || !window.TonalValueDesignerValueBrush ||
+        !window.TonalValueDesignerFeatureSegmentation ||
         !window.TonalValueDesignerViewport || !context) {
         document.body.textContent = "TonalValueDesigner could not start. Confirm that all project files are present.";
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.8.2", buildDate: "2026-07-29" };
+    const release = window.TonalValueDesignerVersion || { version: "1.10.0", buildDate: "2026-07-29" };
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;
@@ -55,6 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let brushCursorPoint = null;
     let paintGestureBlocked = false;
     let explicitPanMode = false;
+    let detectedFeatures = [];
+    let featureSelectionActive = false;
     const paintPointers = new Set();
     const MASSING_UNDO_LIMIT = 10;
 
@@ -98,6 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("cancelMassing").onclick = () => cancelDrawing("Drawing cancelled.");
     $("undoMassing").onclick = undoMassing;
     $("undoPaint").onclick = undoMassing;
+    $("undoSelection").onclick = undoMassing;
     $("selectMass").onclick = beginMassSelection;
     $("applyMassValue").onclick = applySelectedMassValue;
     $("addSelectionArea").onclick = () => beginSelectionRefinement("add");
@@ -106,6 +110,13 @@ document.addEventListener("DOMContentLoaded", () => {
     $("beginPainting").onclick = beginPainting;
     $("panImage").onclick = togglePanImage;
     $("donePainting").onclick = () => endPainting("Painting finished.");
+    $("analyzeFeatures").onclick = analyzeFeatures;
+    $("selectFeature").onclick = selectDetectedFeature;
+    $("splitFeatureByValue").onclick = splitSelectedFeatureByValue;
+    $("detectedFeature").onchange = () => {
+        $("splitFeatureByValue").disabled = true;
+        setFeatureStatus("Choose Select Feature to highlight this item before splitting or editing it.");
+    };
     document.querySelectorAll("[data-values]").forEach(button => {
         button.onclick = () => { $("mapValues").value = button.dataset.values; };
     });
@@ -160,6 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
             selectedPoint = measurement = null;
             sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
             resetMassing();
+            resetFeatureAnalysis();
             $("panImage").disabled = false;
             $("fileName").textContent = `${file.name} — ${canvas.width} × ${canvas.height}`;
             $("imagePlaceholder").hidden = true;
@@ -376,6 +388,152 @@ document.addEventListener("DOMContentLoaded", () => {
         $("mapStatus").textContent = message;
         $("mapStatus").className = `map-status${error ? " error" : ""}`;
     }
+
+    function setFeatureStatus(message, error = false) {
+        $("featureStatus").textContent = message;
+        $("featureStatus").className = `feature-status${error ? " error" : ""}`;
+    }
+
+    function resetFeatureAnalysis() {
+        detectedFeatures = [];
+        featureSelectionActive = false;
+        const select = $("detectedFeature");
+        select.disabled = true;
+        select.innerHTML = "<option>Generate a value map first</option>";
+        $("analyzeFeatures").disabled = true;
+        $("selectFeature").disabled = true;
+        $("splitFeatureByValue").disabled = true;
+        setFeatureStatus("Generate a value map to enable feature analysis.");
+    }
+
+    function renderDetectedFeatures() {
+        const select = $("detectedFeature");
+        select.textContent = "";
+        detectedFeatures.forEach((feature, index) => {
+            const option = document.createElement("option");
+            option.value = String(index);
+            const coverage = Math.max(1, Math.round(feature.size * 100 / (canvas.width * canvas.height)));
+            option.textContent = `${feature.name} (${coverage}% of image)`;
+            select.append(option);
+        });
+        select.disabled = detectedFeatures.length === 0;
+        $("selectFeature").disabled = detectedFeatures.length === 0;
+        $("splitFeatureByValue").disabled = true;
+    }
+
+    async function analyzeFeatures() {
+        if (!originalData || !mapData) {
+            setFeatureStatus("Generate a Painter's Value Map before analyzing features.", true);
+            return;
+        }
+        if (drawingMode) cancelDrawing();
+        if (paintMode) endPainting();
+        if (massSelectionMode) cancelMassSelection();
+        const button = $("analyzeFeatures");
+        button.disabled = true;
+        button.textContent = "Analyzing…";
+        $("selectFeature").disabled = true;
+        $("splitFeatureByValue").disabled = true;
+        $("detectedFeature").disabled = true;
+        try {
+            detectedFeatures = await TonalValueDesignerFeatureSegmentation.analyze(
+                originalData,
+                message => setFeatureStatus(message)
+            );
+            renderDetectedFeatures();
+            const labels = new Set(detectedFeatures.map(feature => feature.label));
+            setFeatureStatus(`Found ${detectedFeatures.length} broad features in ${labels.size} categories. Choose one and select it.`);
+        } catch (error) {
+            detectedFeatures = [];
+            renderDetectedFeatures();
+            setFeatureStatus(`Feature analysis was not completed: ${error.message}`, true);
+        } finally {
+            button.disabled = !mapData;
+            button.textContent = "Analyze Image";
+        }
+    }
+
+    function dominantSelectionGray(spans) {
+        const counts = new Uint32Array(256);
+        for (const span of spans) {
+            for (let x = span.startX; x <= span.endX; x += 1) {
+                counts[mapData.data[(span.y * mapData.width + x) * 4]] += 1;
+            }
+        }
+        let gray = 0;
+        for (let value = 1; value < counts.length; value += 1) {
+            if (counts[value] > counts[gray]) gray = value;
+        }
+        return gray;
+    }
+
+    function selectDetectedFeature() {
+        if (!mapData || !detectedFeatures.length) return;
+        const feature = detectedFeatures[Number($("detectedFeature").value)];
+        if (!feature) return;
+        exitExplicitPanMode();
+        if (drawingMode) cancelDrawing();
+        if (paintMode) endPainting();
+        if (massSelectionMode) cancelMassSelection();
+        if (!showingMap) {
+            showingMap = true;
+            $("showOriginal").textContent = "Show Original";
+            updateMode();
+        }
+        massSelectionMode = true;
+        featureSelectionActive = true;
+        selectedMass = {
+            spans: feature.spans.map(span => ({ ...span })),
+            size: feature.size,
+            sourceGray: dominantSelectionGray(feature.spans),
+            width: feature.width,
+            height: feature.height
+        };
+        selectedPoint = measurement = null;
+        $("emptyResult").hidden = false;
+        $("measurementResult").hidden = true;
+        viewport.setInteractionEnabled(false);
+        drawingSurface.classList.add("selecting-mass");
+        updateSelectionHighlight();
+        $("applyMassValue").disabled = false;
+        $("addSelectionArea").disabled = false;
+        $("removeSelectionArea").disabled = false;
+        $("cancelMassSelection").disabled = false;
+        const sourceValue = retainedValues.reduce((nearest, value) =>
+            Math.abs(TonalValueDesignerValueMap.grayForPainterValue(value) - selectedMass.sourceGray) <
+            Math.abs(TonalValueDesignerValueMap.grayForPainterValue(nearest) - selectedMass.sourceGray) ? value : nearest
+        );
+        $("selectedMassValue").value = String(sourceValue);
+        $("splitFeatureByValue").disabled = Boolean(feature.parentFeature);
+        setFeatureStatus(`${feature.name} is highlighted. Refine it below or assign it a new value.`);
+        setMassSelectionStatus(`AI-selected ${feature.name}. Refine the boundary if needed, then choose and apply a new value.`);
+        redraw();
+    }
+
+    function splitSelectedFeatureByValue() {
+        if (!featureSelectionActive || !selectedMass || !mapData) return;
+        const feature = detectedFeatures[Number($("detectedFeature").value)];
+        if (!feature || feature.parentFeature) return;
+        const divisions = TonalValueDesignerFeatureSegmentation.splitByValue(
+            feature,
+            mapData,
+            retainedValues,
+            TonalValueDesignerValueMap.grayForPainterValue
+        );
+        if (divisions.length < 2) {
+            setFeatureStatus(`${feature.name} contains only one substantial Painter's Value division.`);
+            return;
+        }
+
+        detectedFeatures = detectedFeatures.filter(candidate => candidate.parentFeature !== feature);
+        const parentIndex = detectedFeatures.indexOf(feature);
+        detectedFeatures.splice(parentIndex + 1, 0, ...divisions);
+        renderDetectedFeatures();
+        $("detectedFeature").value = String(parentIndex + 1);
+        selectDetectedFeature();
+        setFeatureStatus(`${feature.name} was split into ${divisions.length} substantial value divisions. The largest division is highlighted.`);
+    }
+
     function updateMode() { $("modeIndicator").textContent = explicitPanMode ? "Pan Image" : showingMap ? "Painter's Value Map" : "Original"; }
 
     function resetMassing() {
@@ -404,6 +562,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("addSelectionArea").disabled = true;
         $("removeSelectionArea").disabled = true;
         $("cancelMassSelection").disabled = true;
+        $("splitFeatureByValue").disabled = true;
         $("paintValue").disabled = true;
         $("paintValue").innerHTML = "<option>Generate a value map first</option>";
         $("brushSize").disabled = true;
@@ -412,6 +571,8 @@ document.addEventListener("DOMContentLoaded", () => {
         setPaintStatus("Generate a value map to enable painting.");
         setMassingStatus("Generate a value map to enable massing.");
         setMassSelectionStatus("Generate a value map to select individual masses.");
+        $("analyzeFeatures").disabled = true;
+        $("selectFeature").disabled = true;
     }
 
     function prepareMassing(values) {
@@ -451,6 +612,12 @@ document.addEventListener("DOMContentLoaded", () => {
         setPaintStatus("Choose a value and brush size, then select Paint Value.");
         setMassingStatus("Choose a value, then draw a free-form boundary around the area to simplify.");
         setMassSelectionStatus("Choose Select Mass, then tap or click one shape in the value map.");
+        $("analyzeFeatures").disabled = false;
+        $("selectFeature").disabled = detectedFeatures.length === 0;
+        $("splitFeatureByValue").disabled = true;
+        setFeatureStatus(detectedFeatures.length
+            ? `${detectedFeatures.length} broad features are available for this image.`
+            : "Select Analyze Image to identify broad features on this device.");
     }
 
     function beginDrawing() {
@@ -598,7 +765,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handleMassSelection(event) {
-        if (!massSelectionMode || selectionRefineMode || event.button > 0) return;
+        if (!massSelectionMode || featureSelectionActive || selectionRefineMode || event.button > 0) return;
         event.preventDefault();
         const point = boundedImagePoint(event);
         if (!point) {
@@ -714,6 +881,8 @@ document.addEventListener("DOMContentLoaded", () => {
         massSelectionMode = false;
         selectionRefineMode = null;
         selectedMass = null;
+        featureSelectionActive = false;
+        $("splitFeatureByValue").disabled = true;
         selectionHighlightCanvas = null;
         drawingPointer = null;
         lassoPoints = [];
@@ -977,6 +1146,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function setUndoAvailable(available) {
         $("undoMassing").disabled = !available;
         $("undoPaint").disabled = !available;
+        $("undoSelection").disabled = !available;
     }
 
     function undoMassing() {

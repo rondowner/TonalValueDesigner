@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.10.0 - 2026-07-29
+
+- Changed AI feature results to show only individual regions covering at least 2% of the complete image.
+- Added Split Feature by Value for intersecting a selected AI feature with the current Painter's Value Map.
+- Added independently selectable child divisions labeled with their parent feature and Painter's Value.
+- Suppressed value divisions smaller than 2% of their selected parent feature.
+- Integrated value divisions with selection highlighting, refinement, Apply Value, and undo.
+
+## 1.9.1 - 2026-07-29
+
+- Added Undo Last to the Select and Adjust Value Mass group.
+- Connected the new control to the shared ten-operation value-massing history.
+- Made Cancel Selection half-width and placed Undo Last beside it.
+
+## 1.9.0 - 2026-07-29
+
+- Added the experimental Identify Features workflow under Value Massing.
+- Added on-device semantic segmentation using a pinned Transformers.js runtime and quantized SegFormer model.
+- Added broad feature categories, connected-region separation, feature coverage, and a selectable feature list.
+- Integrated AI-proposed features with the existing selection highlight, Add Area, Remove Area, Apply Value, and undo workflows.
+- Kept image inference local to the browser; the initial runtime and model download requires internet access.
+- Added `js/featureSegmentation.js` to isolate model loading, inference, and region extraction.
+
 ## 1.8.2 - 2026-07-29
 
 - Corrected the description of distinct value steps in the About dialog.
