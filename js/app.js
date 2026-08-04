@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.10.1", buildDate: "2026-08-04" };
+    const release = window.TonalValueDesignerVersion || { version: "1.11.4", buildDate: "2026-08-04" };
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;
@@ -222,6 +222,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 candidate.tabIndex = selected ? 0 : -1;
                 $(candidate.getAttribute("aria-controls")).hidden = !selected;
             });
+            const trainerActive = button.id === "eyeTrainerTabButton";
+            $("imageWorkspace").hidden = trainerActive;
+            $("eyeTrainerWorkspace").hidden = !trainerActive;
+            $("layoutSplitter").hidden = trainerActive;
+            $("appLayout").classList.toggle("eye-trainer-active", trainerActive);
+            if (!trainerActive) viewport.refresh();
             if (moveFocus) button.focus();
         }
         buttons.forEach((button, index) => {

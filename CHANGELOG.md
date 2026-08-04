@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.11.4 - 2026-08-04
+
+- Hid the temporary ten-step QA reference strip on the Eye Trainer color swatch.
+- Retained the complete QA scale markup, styling, and initialization code.
+- Added one internal `SHOW_QA_REFERENCE_SCALE` flag for restoring the strip later.
+
+## 1.11.3 - 2026-08-04
+
+- Reduced the embedded Eye Trainer swatch by another 25%.
+- Reduced embedded typography, margins, padding, and vertical spacing.
+- Shortened answer, hold, feedback, comparison, and navigation controls.
+- Kept all ten answer choices on one row and left the standalone trainer unchanged.
+
+## 1.11.2 - 2026-08-04
+
+- Reduced the embedded Eye Trainer swatch dimensions by 25%.
+- Reduced embedded answer-button sizing and placed all ten choices on one row.
+- Kept the standalone Eye Trainer layout unchanged.
+
+## 1.11.1 - 2026-08-04
+
+- Corrected the embedded and standalone Eye Trainer references to load `value-eye-trainer/index.html` explicitly.
+- Restored Eye Trainer operation when TonalValueDesigner is opened directly from an extracted local folder.
+- Limited service-worker registration to HTTP and HTTPS so local-file testing does not produce a registration failure.
+
+## 1.11.0 - 2026-08-04
+
+- Embedded the Value Eye Trainer in a new TonalValueDesigner tool tab.
+- Added a standalone trainer entry point at `value-eye-trainer/`.
+- Used one shared trainer implementation for both embedded and standalone operation.
+- Added a direct link from the embedded tool to the standalone trainer.
+
 ## 1.10.1 - 2026-08-04
 
 - Added a dedicated comma button beside the custom Painter's Values field.

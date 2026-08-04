@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.10.1
+# TonalValueDesigner 1.11.4
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -13,6 +13,17 @@ The photograph chooser remains visible while the remaining controls are organize
 - **Value Sampling:** measured value, optional target comparison, and sampling options.
 - **Create Value Map:** retained values, presets, map generation, comparison, and PNG export.
 - **Value Massing:** directed massing, value painting, and selection-based adjustment.
+- **Eye Trainer:** an embedded Painter's Value recognition exercise that also runs from its own URL.
+
+## Value Eye Trainer
+
+Select the **Eye Trainer** tab to use the exercise inside TonalValueDesigner. The same shared application can be opened independently at `value-eye-trainer/index.html`. Score history is stored locally by the browser.
+
+The embedded presentation uses a reduced color swatch, one row of ten answer buttons, and compact typography, spacing, feedback, comparison, and navigation controls. These compact-layout changes do not affect the standalone trainer.
+
+The trainer's temporary ten-step QA reference strip is retained in the source but hidden by default through the internal `SHOW_QA_REFERENCE_SCALE` setting.
+
+The embedded and standalone presentations load the same trainer files, so they do not require separate development branches or synchronized copies.
 
 On desktop, drag the vertical divider between the controls and image to redistribute the workspace. The divider also accepts Left Arrow, Right Arrow, Home, and End when focused; double-clicking restores the default width. On narrow phone layouts the divider is hidden and TonalValueDesigner uses its stacked layout.
 
@@ -113,6 +124,13 @@ TonalValueDesigner/
 |   |-- featureSegmentation.js
 |   |-- version.js
 |   `-- viewport.js
+|-- value-eye-trainer/
+|   |-- index.html
+|   |-- app.js
+|   |-- styles.css
+|   |-- manifest.webmanifest
+|   |-- sw.js
+|   `-- icon.svg
 `-- styles/
     `-- styles.css
 ```
@@ -131,4 +149,4 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.10.1 was built on 2026-08-04. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.
+The header and footer display the running version. Version 1.11.4 was built on 2026-08-04. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.

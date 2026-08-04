@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#171714">
+  <meta name="description" content="Train your eye to recognize painter values from 1 to 10.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=0.6">
+  <title>Value Eye Trainer</title>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div><p class="eyebrow">TONAL VALUE DESIGNER · v0.6</p><h1>Value Eye Trainer</h1></div>
+      <button id="historyButton" class="score-button" aria-label="Open score history"><span>BEST</span><strong id="headerBest">0</strong><small>/100</small></button>
+    </header>
+
+    <section class="status" aria-label="Round progress">
+      <span>Round <strong id="roundNumber">1</strong></span>
+      <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+      <span><strong id="questionNumber">1</strong>/10</span>
+    </section>
+
+    <section id="game" class="game">
+      <div id="swatch" class="swatch" role="img" aria-label="Color swatch to estimate">
+        <span id="peekLabel" class="peek-label">GRAYSCALE</span>
+        <div class="qa-scale" aria-label="QA reference scale from Value 1 black to Value 10 white">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+        </div>
+      </div>
+      <p id="prompt" class="prompt">What painter value is this?</p>
+      <div id="answers" class="answers" aria-label="Choose a value from 1 to 10"></div>
+      <div class="scale-hint" aria-label="Value scale reminder"><span>1 = black</span><span>10 = white</span></div>
+      <div class="hold-controls">
+        <button id="peekButton" class="peek" type="button"><span>◉</span> Hold to peek</button>
+        <button id="scaleButton" class="peek" type="button"><span>◐</span> Hold to show scale</button>
+      </div>
+      <div id="feedback" class="feedback" hidden>
+        <p id="verdict" class="verdict"></p>
+        <div class="comparison" aria-label="Value comparison">
+          <div><span>1</span><span>5</span><span>10</span><i id="valueMarker"></i></div>
+        </div>
+        <p id="answerDetail"></p>
+        <button id="nextButton" class="primary">Next swatch</button>
+      </div>
+    </section>
+
+    <section id="summary" class="summary" hidden>
+      <p class="eyebrow">ROUND COMPLETE</p><h2 id="roundScore">0 / 100</h2>
+      <p id="roundMessage"></p>
+      <div id="roundBreakdown" class="breakdown"></div>
+      <button id="newRoundButton" class="primary">Start next round</button>
+    </section>
+
+    <dialog id="historyDialog">
+      <div class="dialog-head"><h2>Score history</h2><button id="closeHistory" class="icon-button" aria-label="Close">Close</button></div>
+      <p class="best">Best <strong id="bestScore">0/100</strong></p>
+      <ol id="historyList"></ol>
+      <button id="clearHistory" class="reset-button">Reset history and best score</button>
+    </dialog>
+  </main>
+  <script src="app.js?v=0.6"></script>
+</body>
+</html>
