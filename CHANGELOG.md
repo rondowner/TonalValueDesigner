@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.1 - 2026-08-04
+
+- Added a dedicated comma button beside the custom Painter's Values field.
+- Kept the phone's numeric keypad available while making comma-separated custom value sets practical on iPhone.
+- The comma is inserted at the current cursor position and followed by a space for readability.
+
 ## 1.10.0 - 2026-07-29
 
 - Changed AI feature results to show only individual regions covering at least 2% of the complete image.

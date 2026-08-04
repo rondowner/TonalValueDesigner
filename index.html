@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <title>TonalValueDesigner</title>
-    <link rel="stylesheet" href="styles/styles.css?v=1.10.0">
+    <link rel="stylesheet" href="styles/styles.css?v=1.10.1">
     <style>
         body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
         .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
@@ -21,6 +21,8 @@
         .preset-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;margin:.6rem 0}
         .preset-row button{min-width:0;padding:.55rem .25rem;line-height:1.15}
         #mapValues{width:100%;min-height:2.7rem;padding:.55rem .65rem;border:1px solid #aeb4bc;border-radius:.4rem;background:#fff}
+        .map-values-input-row{display:grid;grid-template-columns:minmax(0,1fr) 3rem;gap:.45rem;align-items:stretch}
+        #insertValueComma{min-width:3rem;padding:.55rem;font-size:1.25rem;line-height:1}
         .value-map-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.75rem}
         .map-status,.massing-status,.paint-status,.mass-selection-status,.feature-status{margin:.65rem 0 0;color:#5d636b;font-size:.9rem}
         .map-status.error,.massing-status.error,.paint-status.error,.mass-selection-status.error,.feature-status.error{color:#8b2525}
@@ -88,7 +90,7 @@
 <body>
     <header class="app-header">
         <div><h1>TonalValueDesigner</h1><p class="subtitle">Sample a photograph and estimate its painter's value.</p></div>
-        <div class="version-badge"><span id="appVersion">v1.10.0</span><span id="buildDate">Built 2026-07-29</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
+        <div class="version-badge"><span id="appVersion">v1.10.1</span><span id="buildDate">Built 2026-08-04</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
     </header>
 
     <main id="appLayout" class="app-layout">
@@ -148,9 +150,12 @@
                 <div class="panel-section">
                     <h2>Painter's Value Map</h2>
                     <label for="mapValues">Values to retain:</label>
-                    <input id="mapValues" type="text" value="2, 5, 8" inputmode="decimal" aria-describedby="mapHelp">
+                    <div class="map-values-input-row">
+                        <input id="mapValues" type="text" value="2, 5, 8" inputmode="decimal" aria-describedby="mapHelp">
+                        <button id="insertValueComma" type="button" aria-label="Insert comma between Painter's Values">,</button>
+                    </div>
                     <div class="preset-row"><button type="button" data-values="1, 10">Notan</button><button type="button" data-values="2, 5, 8">3 Values</button><button type="button" data-values="1, 3, 5, 7, 9">5 Values</button><button type="button" data-values="1, 2.5, 4, 5.5, 7, 8.5, 10">7 Values</button></div>
-                    <p id="mapHelp" class="help-text">Enter any two or more values from 1 to 10, separated by commas.</p>
+                    <p id="mapHelp" class="help-text">Enter any two or more values from 1 to 10, separated by commas. On a phone, use the comma button beside the field.</p>
                     <div class="value-map-actions"><button id="generateMap" type="button">Generate Map</button><button id="showOriginal" type="button" disabled>Show Original</button><button id="saveMap" type="button" disabled>Save PNG</button></div>
                     <p id="mapStatus" class="map-status">Open a photograph to begin.</p>
                     <div id="valueLegend" class="value-legend" hidden></div>
@@ -245,7 +250,7 @@
         </div>
     </dialog>
 
-    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.10.0</span> — approximate, not a certified Munsell reading.</p></footer>
-    <script src="js/version.js?v=1.10.0"></script><script src="js/color.js?v=1.10.0"></script><script src="js/valueMap.js?v=1.10.0"></script><script src="js/massing.js?v=1.10.0"></script><script src="js/massSelection.js?v=1.10.0"></script><script src="js/valueBrush.js?v=1.10.0"></script><script src="js/viewport.js?v=1.10.0"></script><script src="js/featureSegmentation.js?v=1.10.0"></script><script src="js/app.js?v=1.10.0"></script>
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.10.1</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/version.js?v=1.10.1"></script><script src="js/color.js?v=1.10.1"></script><script src="js/valueMap.js?v=1.10.1"></script><script src="js/massing.js?v=1.10.1"></script><script src="js/massSelection.js?v=1.10.1"></script><script src="js/valueBrush.js?v=1.10.1"></script><script src="js/viewport.js?v=1.10.1"></script><script src="js/featureSegmentation.js?v=1.10.1"></script><script src="js/app.js?v=1.10.1"></script>
 </body>
 </html>

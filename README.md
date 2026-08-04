@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.10.0
+# TonalValueDesigner 1.10.1
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -40,7 +40,7 @@ A short tap or click samples the image. Dragging navigates without changing the 
 
 ## Create a Painter's Value Map
 
-1. Enter the exact Painter's Values to retain, such as `1, 3, 5, 7, 9`, or choose a preset.
+1. Enter the exact Painter's Values to retain, such as `1, 3, 5, 7, 9`, or choose a preset. On a phone, use the comma button beside the field to separate custom values while retaining the numeric keypad.
 2. Select **Generate Map**. Each part of the photograph is assigned to the nearest retained value.
 3. Use **Show Original** and **Show Value Map** to compare them.
 4. Select **Save PNG** to download a clean, full-resolution map.
@@ -131,4 +131,4 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.10.0 was built on 2026-07-29. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.
+The header and footer display the running version. Version 1.10.1 was built on 2026-08-04. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.

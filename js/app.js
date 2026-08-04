@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.10.0", buildDate: "2026-07-29" };
+    const release = window.TonalValueDesignerVersion || { version: "1.10.1", buildDate: "2026-08-04" };
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;
@@ -96,6 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("generateMap").onclick = generateMap;
     $("showOriginal").onclick = toggleOriginal;
     $("saveMap").onclick = saveMap;
+    $("insertValueComma").onclick = insertValueComma;
     $("drawArea").onclick = beginDrawing;
     $("applyMassing").onclick = applyMassing;
     $("cancelMassing").onclick = () => cancelDrawing("Drawing cancelled.");
@@ -120,6 +121,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-values]").forEach(button => {
         button.onclick = () => { $("mapValues").value = button.dataset.values; };
     });
+
+    function insertValueComma() {
+        const input = $("mapValues");
+        const start = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
+        const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : start;
+        input.setRangeText(", ", start, end, "end");
+        input.focus();
+    }
     setupTabs();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
