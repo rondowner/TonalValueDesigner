@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <title>TonalValueDesigner</title>
-    <link rel="stylesheet" href="styles/styles.css?v=1.11.4">
+    <link rel="stylesheet" href="styles/styles.css?v=1.12.2">
     <style>
         body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
         .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
@@ -97,7 +97,7 @@
 <body>
     <header class="app-header">
         <div><h1>TonalValueDesigner</h1><p class="subtitle">Sample a photograph and estimate its painter's value.</p></div>
-        <div class="version-badge"><span id="appVersion">v1.11.4</span><span id="buildDate">Built 2026-08-04</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
+        <div class="version-badge"><span id="appVersion">v1.12.2</span><span id="buildDate">Built 2026-08-05</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
     </header>
 
     <main id="appLayout" class="app-layout">
@@ -207,7 +207,7 @@
             <section id="eyeTrainerTab" class="tab-panel" role="tabpanel" aria-labelledby="eyeTrainerTabButton" hidden>
                 <div class="panel-section">
                     <h2>Value Eye Trainer</h2>
-                    <p>Practice estimating Painter's Values from color swatches. The trainer appears in the adjacent workspace.</p>
+                    <p>Practice identifying Painter's Values and comparing the relative value of two color swatches. The trainer appears in the adjacent workspace.</p>
                     <p class="help-text">Your score history is stored only in this browser.</p>
                     <a class="standalone-trainer-link" href="value-eye-trainer/index.html" target="_blank" rel="noopener">Open Value Eye Trainer as a standalone tool</a>
                 </div>
@@ -243,7 +243,7 @@
             <div class="image-instructions"><p>Tap to sample. Drag to pan. Use the wheel or pinch to zoom.</p></div>
         </section>
         <section id="eyeTrainerWorkspace" class="eye-trainer-workspace" aria-label="Value Eye Trainer workspace" hidden>
-            <iframe class="eye-trainer-frame" src="value-eye-trainer/index.html?embedded=1&amp;v=0.6" title="Value Eye Trainer"></iframe>
+            <iframe class="eye-trainer-frame" src="value-eye-trainer/index.html?embedded=1&amp;v=0.9" title="Value Eye Trainer"></iframe>
         </section>
     </main>
 
@@ -270,7 +270,7 @@
         </div>
     </dialog>
 
-    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.11.4</span> — approximate, not a certified Munsell reading.</p></footer>
-    <script src="js/version.js?v=1.11.4"></script><script src="js/color.js?v=1.11.4"></script><script src="js/valueMap.js?v=1.11.4"></script><script src="js/massing.js?v=1.11.4"></script><script src="js/massSelection.js?v=1.11.4"></script><script src="js/valueBrush.js?v=1.11.4"></script><script src="js/viewport.js?v=1.11.4"></script><script src="js/featureSegmentation.js?v=1.11.4"></script><script src="js/app.js?v=1.11.4"></script>
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.12.2</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/version.js?v=1.12.2"></script><script src="js/color.js?v=1.12.2"></script><script src="js/valueMap.js?v=1.12.2"></script><script src="js/massing.js?v=1.12.2"></script><script src="js/massSelection.js?v=1.12.2"></script><script src="js/valueBrush.js?v=1.12.2"></script><script src="js/viewport.js?v=1.12.2"></script><script src="js/featureSegmentation.js?v=1.12.2"></script><script src="js/app.js?v=1.12.2"></script>
 </body>
 </html>

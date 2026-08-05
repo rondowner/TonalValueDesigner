@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.11.4", buildDate: "2026-08-04" };
+    const release = window.TonalValueDesignerVersion || { version: "1.12.2", buildDate: "2026-08-05" };
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;

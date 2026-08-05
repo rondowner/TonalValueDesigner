@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.12.2 - 2026-08-05
+
+- Increased embedded Eye Trainer typography for improved readability.
+- Increased embedded mode, answer, range, hold, feedback, and navigation control sizes.
+- Retained the compact embedded swatch dimensions and unchanged standalone layout.
+
+## 1.12.1 - 2026-08-05
+
+- Defined Value Comparison's official answer by whole-number Painter's Value groups.
+- Awarded 10 points for the correct Same, Lighter, or Darker group-based answer.
+- Awarded 5 points for an otherwise incorrect answer when the measured values are no more than 0.4 apart.
+- Added measured values, value groups, and their difference to comparison feedback.
+
+## 1.12.0 - 2026-08-05
+
+- Added Value Identification and Value Comparison training-mode controls.
+- Added two-swatch comparison challenges with Lighter, Same Value, and Darker answers.
+- Added a configurable maximum comparison difference from 1 through 5 value steps, defaulting to 5.
+- Based comparison answers on measured displayed values at tenth-of-a-value precision.
+- Added comparison-mode scoring, feedback, grayscale peek, round history labels, and embedded compact styling.
+
 ## 1.11.4 - 2026-08-04
 
 - Hid the temporary ten-step QA reference strip on the Eye Trainer color swatch.

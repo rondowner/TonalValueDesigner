@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.11.4
+# TonalValueDesigner 1.12.2
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -19,7 +19,11 @@ The photograph chooser remains visible while the remaining controls are organize
 
 Select the **Eye Trainer** tab to use the exercise inside TonalValueDesigner. The same shared application can be opened independently at `value-eye-trainer/index.html`. Score history is stored locally by the browser.
 
+The Eye Trainer provides two modes: **Value Identification** for estimating one swatch's value, and **Value Comparison** for deciding whether a second swatch is lighter, darker, or in the same whole-number value group as the first. Comparison range is configurable from 1 through 5 value steps. The official group-based answer earns 10 points; an otherwise incorrect answer earns 5 when the measured values are no more than 0.4 apart.
+
 The embedded presentation uses a reduced color swatch, one row of ten answer buttons, and compact typography, spacing, feedback, comparison, and navigation controls. These compact-layout changes do not affect the standalone trainer.
+
+Embedded Eye Trainer typography and controls are moderately enlarged for readability while retaining the compact swatch dimensions.
 
 The trainer's temporary ten-step QA reference strip is retained in the source but hidden by default through the internal `SHOW_QA_REFERENCE_SCALE` setting.
 
@@ -149,4 +153,4 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.11.4 was built on 2026-08-04. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.
+The header and footer display the running version. Version 1.12.2 was built on 2026-08-05. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.

@@ -7,15 +7,27 @@
   <meta name="description" content="Train your eye to recognize painter values from 1 to 10.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=0.6">
+  <link rel="stylesheet" href="styles.css?v=0.9">
   <title>Value Eye Trainer</title>
 </head>
 <body>
   <main class="app">
     <header>
-      <div><p class="eyebrow">TONAL VALUE DESIGNER · v0.6</p><h1>Value Eye Trainer</h1></div>
+      <div><p class="eyebrow">TONAL VALUE DESIGNER · v0.9</p><h1>Value Eye Trainer</h1></div>
       <button id="historyButton" class="score-button" aria-label="Open score history"><span>BEST</span><strong id="headerBest">0</strong><small>/100</small></button>
     </header>
+
+    <nav class="mode-switch" aria-label="Training mode">
+      <button id="identificationMode" type="button" aria-pressed="true">Value Identification</button>
+      <button id="comparisonMode" type="button" aria-pressed="false">Value Comparison</button>
+    </nav>
+
+    <div id="comparisonSettings" class="comparison-settings" hidden>
+      <label for="comparisonRange">Maximum value difference</label>
+      <select id="comparisonRange">
+        <option value="1">1 value step</option><option value="2">2 value steps</option><option value="3">3 value steps</option><option value="4">4 value steps</option><option value="5" selected>5 value steps</option>
+      </select>
+    </div>
 
     <section class="status" aria-label="Round progress">
       <span>Round <strong id="roundNumber">1</strong></span>
@@ -29,6 +41,10 @@
         <div class="qa-scale" aria-label="QA reference scale from Value 1 black to Value 10 white">
           <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
         </div>
+      </div>
+      <div id="comparisonSwatches" class="comparison-swatches" hidden>
+        <div class="comparison-swatch-wrap"><span>First swatch</span><div id="firstSwatch" class="swatch comparison-swatch" role="img" aria-label="First comparison color"></div></div>
+        <div class="comparison-swatch-wrap"><span>Second swatch</span><div id="secondSwatch" class="swatch comparison-swatch" role="img" aria-label="Second comparison color"></div></div>
       </div>
       <p id="prompt" class="prompt">What painter value is this?</p>
       <div id="answers" class="answers" aria-label="Choose a value from 1 to 10"></div>
@@ -61,6 +77,6 @@
       <button id="clearHistory" class="reset-button">Reset history and best score</button>
     </dialog>
   </main>
-  <script src="app.js?v=0.6"></script>
+  <script src="app.js?v=0.9"></script>
 </body>
 </html>
