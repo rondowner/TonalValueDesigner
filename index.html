@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <title>TonalValueDesigner</title>
-    <link rel="stylesheet" href="styles/styles.css?v=1.12.2">
+    <link rel="stylesheet" href="styles/styles.css?v=1.13.3">
     <style>
         body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
         .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
@@ -75,6 +75,14 @@
         .about-workflow li+li{margin-top:1rem}
         .about-workflow p{margin:.35rem 0 0}
         .about-close-row{position:sticky;bottom:-1.5rem;display:flex;justify-content:flex-end;margin:1.25rem -1.5rem -1.5rem;padding:.8rem 1.5rem;background:#fff;border-top:1px solid #d9dde2}
+        .analysis-overlay{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:1.25rem;background:rgba(15,18,22,.78);cursor:wait}
+        .analysis-overlay-card{width:min(28rem,calc(100vw - 2rem));padding:1.5rem;text-align:center;background:#fff;border:1px solid #aeb4bc;border-radius:.7rem;box-shadow:0 1rem 3rem rgba(0,0,0,.4)}
+        .analysis-overlay-card h2{margin:.85rem 0 .45rem;font-size:1.35rem}
+        .analysis-overlay-card p{margin:.4rem 0;color:#414851}
+        .analysis-overlay-card .analysis-wait-note{margin-top:.85rem;font-size:.9rem;color:#656b73}
+        .analysis-spinner{width:3.25rem;height:3.25rem;margin:auto;border:.4rem solid #d7dce2;border-top-color:#356fb3;border-radius:50%;animation:analysis-spin .85s linear infinite}
+        @keyframes analysis-spin{to{transform:rotate(360deg)}}
+        @media(prefers-reduced-motion:reduce){.analysis-spinner{animation-duration:1.8s}}
         @media(max-width:900px){
             body{height:auto;display:block;overflow:auto}
             .app-layout{height:auto;grid-template-columns:1fr;gap:.85rem}
@@ -97,7 +105,7 @@
 <body>
     <header class="app-header">
         <div><h1>TonalValueDesigner</h1><p class="subtitle">Sample a photograph and estimate its painter's value.</p></div>
-        <div class="version-badge"><span id="appVersion">v1.12.2</span><span id="buildDate">Built 2026-08-05</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
+        <div class="version-badge"><span id="appVersion">v1.13.3</span><span id="buildDate">Built 2026-08-05</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
     </header>
 
     <main id="appLayout" class="app-layout">
@@ -189,11 +197,14 @@
                 </div>
                 <div class="panel-section">
                     <h2>Identify Features (AI Prototype)</h2>
-                    <p class="help-text">Find major subjects such as sky, mountains, trees, roads, buildings, and water. Regions covering less than 2% of the image are omitted. Analysis runs on this device; the first use downloads a small AI model.</p>
-                    <div class="feature-actions"><button id="analyzeFeatures" type="button" disabled>Analyze Image</button><button id="selectFeature" type="button" disabled>Select Feature</button><button id="splitFeatureByValue" type="button" disabled>Split Feature by Value</button></div>
-                    <label for="detectedFeature">Detected feature:</label>
-                    <select id="detectedFeature" disabled><option>Generate a value map first</option></select>
-                    <p id="featureStatus" class="feature-status">Generate a value map to enable feature analysis.</p>
+                    <p id="featurePhoneNotice" class="help-text" hidden>Feature identification is available on tablets and computers. On phones, Tonal Value Designer is optimized for value sampling. No AI models will be downloaded.</p>
+                    <div id="featureDesktopControls">
+                        <p class="help-text">Find broad scene areas plus recognizable subjects such as people, birds, animals, vehicles, and furnishings. Recognized objects begin as approximate localized regions; use Add Area or Remove Area to refine their boundaries. Analysis runs on this device; first use downloads two AI models and may take several minutes.</p>
+                        <div class="feature-actions"><button id="analyzeFeatures" type="button" disabled>Analyze Image</button><button id="selectFeature" type="button" disabled>Select Feature</button><button id="splitFeatureByValue" type="button" disabled>Split Feature by Value</button></div>
+                        <label for="detectedFeature">Detected feature:</label>
+                        <select id="detectedFeature" disabled><option>Generate a value map first</option></select>
+                        <p id="featureStatus" class="feature-status">Generate a value map to enable feature analysis.</p>
+                    </div>
                 </div>
                 <div class="panel-section">
                     <h2>Select and Adjust Value Mass</h2>
@@ -247,6 +258,15 @@
         </section>
     </main>
 
+    <div id="analysisOverlay" class="analysis-overlay" role="status" aria-live="polite" aria-busy="true" hidden>
+        <div class="analysis-overlay-card">
+            <div class="analysis-spinner" aria-hidden="true"></div>
+            <h2>Analyzing Image</h2>
+            <p id="analysisOverlayStatus">Preparing feature analysis...</p>
+            <p class="analysis-wait-note">Please wait. Do not click other controls or close this page until analysis finishes.</p>
+        </div>
+    </div>
+
     <dialog id="aboutDialog" class="about-dialog" aria-labelledby="aboutTitle">
         <div class="about-dialog-content">
             <h2 id="aboutTitle">Tonal Value Designer</h2>
@@ -270,7 +290,7 @@
         </div>
     </dialog>
 
-    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.12.2</span> — approximate, not a certified Munsell reading.</p></footer>
-    <script src="js/version.js?v=1.12.2"></script><script src="js/color.js?v=1.12.2"></script><script src="js/valueMap.js?v=1.12.2"></script><script src="js/massing.js?v=1.12.2"></script><script src="js/massSelection.js?v=1.12.2"></script><script src="js/valueBrush.js?v=1.12.2"></script><script src="js/viewport.js?v=1.12.2"></script><script src="js/featureSegmentation.js?v=1.12.2"></script><script src="js/app.js?v=1.12.2"></script>
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.13.3</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/version.js?v=1.13.3"></script><script src="js/color.js?v=1.13.3"></script><script src="js/valueMap.js?v=1.13.3"></script><script src="js/massing.js?v=1.13.3"></script><script src="js/massSelection.js?v=1.13.3"></script><script src="js/valueBrush.js?v=1.13.3"></script><script src="js/viewport.js?v=1.13.3"></script><script src="js/featureSegmentation.js?v=1.13.3"></script><script src="js/app.js?v=1.13.3"></script>
 </body>
 </html>

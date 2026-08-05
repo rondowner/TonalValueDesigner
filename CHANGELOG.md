@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.13.3 - 2026-08-05
+
+- Reduced peak AI memory by running the two models sequentially and disposing each live pipeline after its masks have been converted into Tonal Value Designer features.
+- Kept downloaded model files in the browser cache, so disposal does not require downloading them again for later analyses.
+- Added phase-specific errors identifying broad-scene failures separately from object-recognition failures.
+- Added model-memory release phases to the blocking progress overlay.
+- Corrected RGBA mask interpretation so the opaque alpha channel is not mistaken for feature membership.
+- Replaced the unreliable quantized panoptic masks with the lighter DETR object detector.
+- Converted detected-object boxes into localized selectable regions, rejected oversized detections, and suppressed nested duplicates by preferring tighter boxes.
+- Clearly identified detected-object boundaries as approximate and directed users to Add Area and Remove Area for refinement.
+- Validated the complete workflow against `Blue-Jay-cherry-blossoms2.png`; it returned Sky, Tree, and a localized Bird object region covering approximately 17% of the image.
+
+## 1.13.2 - 2026-08-05
+
+- Added a blocking feature-analysis overlay with an animated progress indicator and live phase descriptions.
+- Prevented accidental interaction with other controls while AI analysis is running.
+- Replaced the assumption that every failure has an `error.message` with robust handling for errors, strings, events, nested reasons, and browser-runtime failures.
+- Added actionable fallback guidance when a browser supplies no failure details.
+- Confirmed the two-model analysis path against the blue-jay test image; it returned a selectable Bird object mask.
+
+## 1.13.1 - 2026-08-05
+
+- Restricted AI feature identification to tablets and computers.
+- Replaced the feature-analysis controls on phones with a concise availability and value-sampling message.
+- Added an execution guard that prevents phones from initializing or downloading either AI model.
+- Kept the shared responsive application and all non-AI phone functionality unchanged.
+
+## 1.13.0 - 2026-08-05
+
+- Added a second, instance-aware AI pass for recognizable subjects such as birds, people, animals, vehicles, and furnishings.
+- Added free-form panoptic masks for recognized objects rather than detection rectangles.
+- Merged recognized objects with the existing broad scene features in one selectable list.
+- Marked recognized-object entries clearly and preferred their instance masks when both models report the same category.
+- Retained the 2% threshold for broad scene regions while allowing recognized objects covering at least 0.5% of the image.
+- Kept all inference in the browser; first use now downloads both quantized models and can take several minutes.
+
 ## 1.12.2 - 2026-08-05
 
 - Increased embedded Eye Trainer typography for improved readability.

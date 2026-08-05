@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.12.2
+# TonalValueDesigner 1.13.3
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -76,12 +76,19 @@ Add Area and Remove Area change only the blue selection mask; they do not alter 
 
 ## Identify Features — AI prototype
 
-After generating a value map, open the **Value Massing** tab and select **Analyze Image**. A compact semantic-segmentation model runs in the browser and proposes broad features such as sky, mountains, trees, roads, buildings, fields, and water.
+After generating a value map, open the **Value Massing** tab and select **Analyze Image**. Two complementary models run in the browser. The first proposes broad features such as sky, mountains, trees, roads, buildings, fields, and water. The second recognizes individual subjects such as people, birds, animals, vehicles, and furnishings and returns an approximate localized region for each subject.
 
-- The first analysis downloads and caches an approximately 4.5 MB quantized model plus its browser runtime.
+Feature identification is available on tablets and computers, not phones. On a phone the analysis controls are replaced by an explanatory note, and an execution guard prevents either AI model from being initialized or downloaded. Opening and using Tonal Value Designer for phone value sampling therefore does not incur the AI-model download.
+
+- The first analysis downloads and caches the browser runtime and two quantized models. The object-recognition model is substantially larger, so first use may take several minutes depending on the device and connection.
 - The reference photograph is processed on the device and is not uploaded for inference.
 - Analysis intentionally favors broad, thumbnail-scale regions over photographic boundary precision.
-- Only individual regions covering at least 2% of the complete image are shown, suppressing minor and frequently incorrect AI fragments.
+- Broad regions must cover at least 2% of the complete image. Recognized objects must cover at least 0.5%, allowing meaningful smaller subjects while suppressing tiny detections.
+- Recognized objects are labeled in the list with `(recognized object)`. Their initial selection is an approximate rectangular region; use Add Area and Remove Area to refine the subject boundary before changing its value.
+- While analysis runs, a blocking progress overlay identifies the current phase and prevents accidental interaction. It closes automatically when analysis succeeds or fails.
+- If analysis fails, the displayed message accepts browser errors, download events, and runtime failures instead of displaying an undefined message.
+- To reduce peak memory, the broad-scene model is disposed before object recognition begins. The object model is also disposed after its masks are converted into selectable features. Downloaded files remain in the browser cache.
+- Failure messages identify whether the broad-scene or object-recognition phase failed.
 - Disconnected regions within one category are offered as separate features when each is large enough to matter.
 - Choose a detected feature and select **Select Feature** to highlight it in the value map.
 - Select **Split Feature by Value** to divide the highlighted parent feature using the current Painter's Value Map. Divisions smaller than 2% of the selected feature are suppressed.
@@ -90,7 +97,7 @@ After generating a value map, open the **Value Massing** tab and select **Analyz
 
 Feature identification is advisory. The artist remains responsible for deciding which real-world features should be joined or separated as compositional value masses. Internet access is required the first time the AI runtime and model are downloaded.
 
-The prototype pins Transformers.js 3.8.1 and uses the quantized `Xenova/segformer-b0-finetuned-ade-512-512` ONNX model, derived from NVIDIA's ADE20K SegFormer model. Review the upstream model card and license metadata before treating this prototype dependency as a final production distribution choice.
+The prototype pins Transformers.js 3.8.1 and uses the quantized `Xenova/segformer-b0-finetuned-ade-512-512` broad-scene model plus the quantized `Xenova/detr-resnet-50` object-detection model. Review both upstream model cards and license metadata before treating these prototype dependencies as a final production distribution choice.
 
 ## Value Massing: By Area
 
@@ -153,4 +160,4 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.12.2 was built on 2026-08-05. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.
+The header and footer display the running version. Version 1.13.3 was built on 2026-08-05. Select **About Tonal Value Designer** beside the header version to read the product purpose and supported painting workflow.

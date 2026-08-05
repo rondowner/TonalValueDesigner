@@ -12,10 +12,20 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.12.2", buildDate: "2026-08-05" };
+    const release = window.TonalValueDesignerVersion || { version: "1.13.3", buildDate: "2026-08-05" };
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;
+
+    const shortestScreenSide = Math.min(
+        Number(window.screen?.width) || window.innerWidth,
+        Number(window.screen?.height) || window.innerHeight
+    );
+    const phoneFeatureRestricted = navigator.userAgentData?.mobile === true ||
+        /iPhone|iPod|Android.*Mobile|Windows Phone/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 0 && shortestScreenSide <= 500);
+    $("featurePhoneNotice").hidden = !phoneFeatureRestricted;
+    $("featureDesktopControls").hidden = phoneFeatureRestricted;
 
     const aboutDialog = $("aboutDialog");
     $("openAbout").onclick = () => {
@@ -409,6 +419,33 @@ document.addEventListener("DOMContentLoaded", () => {
         $("featureStatus").className = `feature-status${error ? " error" : ""}`;
     }
 
+    function setAnalysisBusy(busy, message = "Preparing feature analysis...") {
+        const overlay = $("analysisOverlay");
+        $("analysisOverlayStatus").textContent = message;
+        overlay.hidden = !busy;
+        document.body.setAttribute("aria-busy", String(busy));
+    }
+
+    function reportAnalysisProgress(message) {
+        setFeatureStatus(message);
+        $("analysisOverlayStatus").textContent = message;
+    }
+
+    function describeAnalysisError(error) {
+        if (typeof error === "string" && error.trim()) return error.trim();
+        const candidates = [
+            error?.message,
+            error?.error?.message,
+            error?.reason?.message,
+            typeof error?.reason === "string" ? error.reason : "",
+            typeof error?.detail === "string" ? error.detail : "",
+            typeof error?.type === "string" && error.type !== "error" ? error.type : ""
+        ];
+        const description = candidates.find(value => typeof value === "string" && value.trim());
+        if (description) return description.trim();
+        return "The browser stopped the AI model without providing details. The model download may have been interrupted, its cached copy may be incomplete, or the device may not have had enough available memory.";
+    }
+
     function resetFeatureAnalysis() {
         detectedFeatures = [];
         featureSelectionActive = false;
@@ -437,6 +474,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function analyzeFeatures() {
+        if (phoneFeatureRestricted) {
+            // This is an execution guard as well as a UI restriction. It
+            // guarantees that a phone cannot initialize or download either
+            // AI model, even if this function is invoked indirectly.
+            setFeatureStatus("Feature identification is available on tablets and computers.", true);
+            return;
+        }
         if (!originalData || !mapData) {
             setFeatureStatus("Generate a Painter's Value Map before analyzing features.", true);
             return;
@@ -446,24 +490,28 @@ document.addEventListener("DOMContentLoaded", () => {
         if (massSelectionMode) cancelMassSelection();
         const button = $("analyzeFeatures");
         button.disabled = true;
-        button.textContent = "Analyzing…";
+        button.textContent = "Analyzing...";
         $("selectFeature").disabled = true;
         $("splitFeatureByValue").disabled = true;
         $("detectedFeature").disabled = true;
+        setAnalysisBusy(true);
         try {
             detectedFeatures = await TonalValueDesignerFeatureSegmentation.analyze(
                 originalData,
-                message => setFeatureStatus(message)
+                reportAnalysisProgress
             );
             renderDetectedFeatures();
             const labels = new Set(detectedFeatures.map(feature => feature.label));
-            setFeatureStatus(`Found ${detectedFeatures.length} broad features in ${labels.size} categories. Choose one and select it.`);
+            const recognizedObjects = detectedFeatures.filter(feature => feature.source === "object").length;
+            setFeatureStatus(`Found ${detectedFeatures.length} selectable features in ${labels.size} categories, including ${recognizedObjects} recognized ${recognizedObjects === 1 ? "object" : "objects"}. Choose one and select it.`);
         } catch (error) {
+            console.error("Feature analysis failed", error);
             detectedFeatures = [];
             renderDetectedFeatures();
-            setFeatureStatus(`Feature analysis was not completed: ${error.message}`, true);
+            setFeatureStatus(`Feature analysis was not completed: ${describeAnalysisError(error)}`, true);
         } finally {
-            button.disabled = !mapData;
+            setAnalysisBusy(false);
+            button.disabled = phoneFeatureRestricted || !mapData;
             button.textContent = "Analyze Image";
         }
     }
@@ -520,8 +568,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         $("selectedMassValue").value = String(sourceValue);
         $("splitFeatureByValue").disabled = Boolean(feature.parentFeature);
-        setFeatureStatus(`${feature.name} is highlighted. Refine it below or assign it a new value.`);
-        setMassSelectionStatus(`AI-selected ${feature.name}. Refine the boundary if needed, then choose and apply a new value.`);
+        const boundaryNote = feature.approximateBoundary ? " This recognized object has an approximate rectangular boundary." : "";
+        setFeatureStatus(`${feature.name} is highlighted.${boundaryNote} Refine it below or assign it a new value.`);
+        setMassSelectionStatus(`AI-selected ${feature.name}.${boundaryNote} Use Add Area or Remove Area as needed, then choose and apply a new value.`);
         redraw();
     }
 
@@ -627,7 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setPaintStatus("Choose a value and brush size, then select Paint Value.");
         setMassingStatus("Choose a value, then draw a free-form boundary around the area to simplify.");
         setMassSelectionStatus("Choose Select Mass, then tap or click one shape in the value map.");
-        $("analyzeFeatures").disabled = false;
+        $("analyzeFeatures").disabled = phoneFeatureRestricted;
         $("selectFeature").disabled = detectedFeatures.length === 0;
         $("splitFeatureByValue").disabled = true;
         setFeatureStatus(detectedFeatures.length
