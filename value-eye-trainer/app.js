@@ -77,7 +77,7 @@ function makeComparison(){
       if(measuredDifference<.1||measuredDifference>maximum)continue;
     }
     const firstGroup=valueGroup(first.value),secondGroup=valueGroup(second.value);
-    const relation=secondGroup===firstGroup?'same':secondGroup>firstGroup?'lighter':'darker';
+    const relation=second.value===first.value?'same':second.value>first.value?'lighter':'darker';
     return {first,second,firstGroup,secondGroup,relation,difference:Math.round(Math.abs(second.value-first.value)*10)/10,maximum};
   }
   const first=makeColor(5);
@@ -110,7 +110,7 @@ function answer(guess){
   }
   points+=earned;results.push(earned);[...els.answers.children].forEach(button=>button.disabled=true);
   const chosenButton=[...els.answers.children].find(button=>button.dataset.guess===String(guess));if(chosenButton)chosenButton.classList.add('chosen');
-  els.verdict.textContent=exact?'Correct · +10':close?'Close · +5':'Keep looking · +0';els.feedback.hidden=false;els.next.textContent=question===9?'See round score':'Next challenge';
+  els.verdict.textContent=exact?'Correct · +10':close?'Close · +5':'Try Again · +0';els.feedback.hidden=false;els.next.textContent=question===9?'See round score':'Next challenge';
 }
 function advance(){question++;if(question>=10)finish();else newChallenge()}
 function finish(){

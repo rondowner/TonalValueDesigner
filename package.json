@@ -1,0 +1,10 @@
+{
+  "name": "tonal-value-designer",
+  "version": "2.9.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-browser-bundle.mjs",
+    "test": "node tests/core-regression.test.js"
+  }
+}

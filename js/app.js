@@ -1,29 +1,30 @@
 "use strict";
 
+import TonalValueDesignerVersion from "./version.js?v=2.9.1";
+import CoreEngine from "./coreEngine.js?v=2.9.1";
+import TonalValueDesignerViewport from "./viewport.js?v=2.9.1";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.9.1";
+import BrowserPlatform from "./browserPlatform.js?v=2.9.1";
+import createEditHistory from "./editHistory.js?v=2.9.1";
+import createDocumentState from "./documentState.js?v=2.9.1";
+import createInteractionState from "./interactionState.js?v=2.9.1";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.9.1";
+
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
     const canvas = $("imageCanvas");
     const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!window.TonalValueDesignerColor || !window.TonalValueDesignerValueMap ||
-        !window.TonalValueDesignerMassing || !window.TonalValueDesignerMassSelection || !window.TonalValueDesignerValueBrush ||
-        !window.TonalValueDesignerFeatureSegmentation ||
-        !window.TonalValueDesignerViewport || !context) {
+    if (!context) {
         document.body.textContent = "TonalValueDesigner could not start. Confirm that all project files are present.";
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.14.2", buildDate: "2026-08-09" };
+    const release = TonalValueDesignerVersion;
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;
 
-    const shortestScreenSide = Math.min(
-        Number(window.screen?.width) || window.innerWidth,
-        Number(window.screen?.height) || window.innerHeight
-    );
-    const phoneFeatureRestricted = navigator.userAgentData?.mobile === true ||
-        /iPhone|iPod|Android.*Mobile|Windows Phone/i.test(navigator.userAgent) ||
-        (navigator.maxTouchPoints > 0 && shortestScreenSide <= 500);
+    const phoneFeatureRestricted = BrowserPlatform.isPhone();
     $("featurePhoneNotice").hidden = !phoneFeatureRestricted;
     $("featureDesktopControls").hidden = phoneFeatureRestricted;
 
@@ -40,37 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (event.target === aboutDialog) $("closeAbout").click();
     });
 
-    let selectedPoint = null;
-    let measurement = null;
-    let lastViewportScale = 1;
-    let originalData = null;
-    let mapData = null;
-    let retainedValues = [];
-    let showingMap = false;
-    let sourceName = "value-map";
-    let drawingMode = false;
-    let drawingPointer = null;
-    let straightSegmentAnchorIndex = null;
-    let lassoPoints = [];
-    let lassoComplete = false;
-    let baseMapData = null;
-    let massingHistory = [];
-    let massSelectionMode = false;
-    let selectedMass = null;
-    let selectionHighlightCanvas = null;
-    let selectionRefineMode = null;
-    let paintMode = false;
-    let paintPaused = false;
-    let brushPointer = null;
-    let brushPoints = [];
-    let brushStrokeChanged = 0;
-    let brushCursorPoint = null;
-    let paintGestureBlocked = false;
-    let explicitPanMode = false;
-    let detectedFeatures = [];
-    let featureSelectionActive = false;
-    const paintPointers = new Set();
-    const MASSING_UNDO_LIMIT = 10;
+    const documentState = createDocumentState();
+    const interactionState = createInteractionState();
+    const editHistory = createEditHistory({ limit: 10, applyOperation: applyMassingOperation });
 
     const viewport = TonalValueDesignerViewport({
         container: $("canvasContainer"),
@@ -78,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         canvas,
         onTap: point => {
             if (point.x >= 0 && point.y >= 0 && point.x < canvas.width && point.y < canvas.height) {
-                selectedPoint = point;
+                documentState.selectedPoint = point;
                 measure();
             }
         },
@@ -87,20 +60,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Redraw only when magnification changes. The badge is sized in
             // screen units, so this keeps it readable at every zoom level.
-            if (measurement && Math.abs(scale - lastViewportScale) > 0.0001) {
-                lastViewportScale = scale;
+            if (documentState.measurement && Math.abs(scale - documentState.lastViewportScale) > 0.0001) {
+                documentState.lastViewportScale = scale;
                 redraw();
             } else {
-                lastViewportScale = scale;
+                documentState.lastViewportScale = scale;
             }
         }
+    });
+    const canvasRenderer = createCanvasRenderer({
+        canvas,
+        context,
+        getScale: viewport.getScale,
+        createLayerCanvas: imageData => BrowserPlatform.canvasFromImageData(imageData)
     });
 
     $("zoomIn").onclick = viewport.zoomIn;
     $("zoomOut").onclick = viewport.zoomOut;
     $("fitImage").onclick = viewport.fit;
     $("actualSize").onclick = viewport.actual;
-    $("sampleSize").onchange = () => selectedPoint && measure();
+    $("sampleSize").onchange = () => documentState.selectedPoint && measure();
     $("targetValue").oninput = compare;
     $("targetTolerance").onchange = compare;
     $("clearTargetButton").onclick = () => { $("targetValue").value = ""; compare(); };
@@ -154,47 +133,45 @@ document.addEventListener("DOMContentLoaded", () => {
     drawingSurface.addEventListener("pointercancel", handlePaintEnd);
     drawingSurface.addEventListener("pointerleave", handlePaintLeave);
     document.addEventListener("keydown", event => {
-        if (paintMode && event.key === "Escape") {
+        if (interactionState.paintMode && event.key === "Escape") {
             event.preventDefault();
             endPainting("Painting finished with Escape.");
-        } else if (selectionRefineMode && event.key === "Escape") {
+        } else if (interactionState.selectionRefineMode && event.key === "Escape") {
             event.preventDefault();
             cancelSelectionRefinement("Refinement cancelled; the selection is unchanged.");
-        } else if (drawingMode && event.key === "Escape") {
+        } else if (interactionState.drawingMode && event.key === "Escape") {
             event.preventDefault();
             cancelDrawing("Drawing cancelled with Escape.");
-        } else if (massSelectionMode && event.key === "Escape") {
+        } else if (interactionState.massSelectionMode && event.key === "Escape") {
             event.preventDefault();
             cancelMassSelection("Selection cancelled with Escape.");
         }
     });
     document.addEventListener("keyup", event => {
-        if (drawingMode && event.key === "Shift") {
-            straightSegmentAnchorIndex = null;
+        if (interactionState.drawingMode && event.key === "Shift") {
+            interactionState.straightSegmentAnchorIndex = null;
         }
     });
 
-    $("imageFile").addEventListener("change", event => {
+    $("imageFile").addEventListener("change", async event => {
         const file = event.target.files?.[0];
         if (!file) return;
         if (!file.type.startsWith("image/")) {
             $("fileName").textContent = "Please choose an image file.";
             return;
         }
-        const url = URL.createObjectURL(file);
-        const image = new Image();
         $("fileName").textContent = `Loading ${file.name}…`;
-        image.onload = () => {
-            URL.revokeObjectURL(url);
+        try {
+            const image = await BrowserPlatform.loadImageFile(file);
             canvas.width = image.naturalWidth;
             canvas.height = image.naturalHeight;
-            context.drawImage(image, 0, 0);
-            originalData = context.getImageData(0, 0, canvas.width, canvas.height);
-            mapData = null;
-            retainedValues = [];
-            showingMap = false;
-            selectedPoint = measurement = null;
-            sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
+            canvasRenderer.drawSourceImage(image);
+            documentState.originalData = context.getImageData(0, 0, canvas.width, canvas.height);
+            documentState.mapData = null;
+            documentState.retainedValues = [];
+            documentState.showingMap = false;
+            documentState.selectedPoint = documentState.measurement = null;
+            documentState.sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
             resetMassing();
             resetFeatureAnalysis();
             $("panImage").disabled = false;
@@ -210,26 +187,23 @@ document.addEventListener("DOMContentLoaded", () => {
             setMapStatus("Choose the Painter's Values you want to retain.");
             updateMode();
             requestAnimationFrame(viewport.fit);
-        };
-        image.onerror = () => {
-            URL.revokeObjectURL(url);
-            $("fileName").textContent = "TonalValueDesigner could not open that image.";
-        };
-        image.src = url;
+        } catch (error) {
+            $("fileName").textContent = error.message || "TonalValueDesigner could not open that image.";
+        }
     });
 
-    function activeData() { return showingMap && mapData ? mapData : originalData; }
+    function activeData() { return documentState.showingMap && documentState.mapData ? documentState.mapData : documentState.originalData; }
 
     function setupTabs() {
         const buttons = [...document.querySelectorAll('[role="tab"]')];
         function activate(button, moveFocus = false) {
-            if (drawingMode && button.id !== "massingTabButton") {
+            if (interactionState.drawingMode && button.id !== "massingTabButton") {
                 cancelDrawing("Drawing cancelled when switching tools.");
             }
-            if (massSelectionMode && button.id !== "massingTabButton") {
+            if (interactionState.massSelectionMode && button.id !== "massingTabButton") {
                 cancelMassSelection("Selection cancelled when switching tools.");
             }
-            if (paintMode && button.id !== "massingTabButton") {
+            if (interactionState.paintMode && button.id !== "massingTabButton") {
                 endPainting("Painting finished when switching tools.");
             }
             buttons.forEach(candidate => {
@@ -319,35 +293,36 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    function drawBase() {
-        const data = activeData();
-        if (data) context.putImageData(data, 0, 0);
-    }
     function redraw() {
-        drawBase();
-        if (selectedMass && selectionHighlightCanvas) context.drawImage(selectionHighlightCanvas, 0, 0);
-        if ((drawingMode || selectionRefineMode) && lassoPoints.length) drawLasso();
-        else if (!selectedMass && selectedPoint) {
-            drawCrosshair(selectedPoint.x, selectedPoint.y);
-            if (measurement) drawValueBadge(selectedPoint.x, selectedPoint.y, measurement.value);
-        }
-        if (paintMode && !paintPaused && brushCursorPoint) drawBrushCursor();
+        canvasRenderer.render({
+            baseData: activeData(),
+            selectionOverlayData: interactionState.selectedMass ? interactionState.selectionHighlightData : null,
+            lasso: (interactionState.drawingMode || interactionState.selectionRefineMode) && interactionState.lassoPoints.length
+                ? { points: interactionState.lassoPoints, complete: interactionState.lassoComplete }
+                : null,
+            sample: !interactionState.selectedMass && documentState.selectedPoint
+                ? { point: documentState.selectedPoint, value: documentState.measurement?.value }
+                : null,
+            brush: interactionState.paintMode && !interactionState.paintPaused && interactionState.brushCursorPoint
+                ? { point: interactionState.brushCursorPoint, radius: currentBrushRadius() }
+                : null
+        });
     }
 
     function generateMap() {
-        if (!originalData) { setMapStatus("Open a photograph first.", true); return; }
+        if (!documentState.originalData) { setMapStatus("Open a photograph first.", true); return; }
         let values;
-        try { values = TonalValueDesignerValueMap.parseValues($("mapValues").value); }
+        try { values = CoreEngine.parseValues($("mapValues").value); }
         catch (error) { setMapStatus(error.message, true); return; }
 
         $("generateMap").disabled = true;
         setMapStatus("Generating value map…");
         requestAnimationFrame(() => {
             try {
-                mapData = TonalValueDesignerValueMap.generate(originalData, values);
-                retainedValues = values;
-                showingMap = true;
-                selectedPoint = measurement = null;
+                documentState.mapData = CoreEngine.generateValueMap(documentState.originalData, values);
+                documentState.retainedValues = values;
+                documentState.showingMap = true;
+                documentState.selectedPoint = documentState.measurement = null;
                 $("emptyResult").hidden = false;
                 $("measurementResult").hidden = true;
                 $("showOriginal").disabled = false;
@@ -367,41 +342,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function toggleOriginal() {
-        if (!mapData) return;
-        if (drawingMode) cancelDrawing("Drawing cancelled when the view changed.");
-        if (massSelectionMode) cancelMassSelection("Selection cancelled when the view changed.");
-        if (paintMode) endPainting("Painting finished when the view changed.");
-        showingMap = !showingMap;
-        $("showOriginal").textContent = showingMap ? "Show Original" : "Show Value Map";
-        selectedPoint = measurement = null;
+        if (!documentState.mapData) return;
+        if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when the view changed.");
+        if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when the view changed.");
+        if (interactionState.paintMode) endPainting("Painting finished when the view changed.");
+        documentState.showingMap = !documentState.showingMap;
+        $("showOriginal").textContent = documentState.showingMap ? "Show Original" : "Show Value Map";
+        documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
         $("measurementResult").hidden = true;
         redraw();
         updateMode();
     }
 
-    function saveMap() {
-        if (!mapData) return;
-        const exportCanvas = document.createElement("canvas");
-        exportCanvas.width = mapData.width;
-        exportCanvas.height = mapData.height;
-        exportCanvas.getContext("2d").putImageData(mapData, 0, 0);
-        exportCanvas.toBlob(blob => {
-            if (!blob) { setMapStatus("The browser could not create the PNG.", true); return; }
-            const link = document.createElement("a");
-            const values = retainedValues.join("-").replace(/\./g, "_");
-            link.download = `${sourceName}-values-${values}.png`;
-            link.href = URL.createObjectURL(blob);
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-            setMapStatus(`Saved ${link.download}.`);
-        }, "image/png");
+    async function saveMap() {
+        if (!documentState.mapData) return;
+        try {
+            const values = documentState.retainedValues.join("-").replace(/\./g, "_");
+            const fileName = `${documentState.sourceName}-values-${values}.png`;
+            await BrowserPlatform.savePng(documentState.mapData, fileName);
+            setMapStatus(`Saved ${fileName}.`);
+        } catch (error) {
+            setMapStatus(error.message || "The browser could not create the PNG.", true);
+        }
     }
 
     function renderLegend() {
         const legend = $("valueLegend");
         legend.textContent = "";
-        TonalValueDesignerValueMap.makeLegend(retainedValues).forEach(item => {
+        CoreEngine.makeValueLegend(documentState.retainedValues).forEach(item => {
             const entry = document.createElement("div");
             entry.className = "legend-item";
             const swatch = document.createElement("span");
@@ -453,8 +422,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function resetFeatureAnalysis() {
-        detectedFeatures = [];
-        featureSelectionActive = false;
+        interactionState.detectedFeatures = [];
+        interactionState.featureSelectionActive = false;
         const select = $("detectedFeature");
         select.disabled = true;
         select.innerHTML = "<option>Generate a value map first</option>";
@@ -467,15 +436,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderDetectedFeatures() {
         const select = $("detectedFeature");
         select.textContent = "";
-        detectedFeatures.forEach((feature, index) => {
+        interactionState.detectedFeatures.forEach((feature, index) => {
             const option = document.createElement("option");
             option.value = String(index);
             const coverage = Math.max(1, Math.round(feature.size * 100 / (canvas.width * canvas.height)));
             option.textContent = `${feature.name} (${coverage}% of image)`;
             select.append(option);
         });
-        select.disabled = detectedFeatures.length === 0;
-        $("selectFeature").disabled = detectedFeatures.length === 0;
+        select.disabled = interactionState.detectedFeatures.length === 0;
+        $("selectFeature").disabled = interactionState.detectedFeatures.length === 0;
         $("splitFeatureByValue").disabled = true;
     }
 
@@ -487,13 +456,13 @@ document.addEventListener("DOMContentLoaded", () => {
             setFeatureStatus("Feature identification is available on tablets and computers.", true);
             return;
         }
-        if (!originalData || !mapData) {
+        if (!documentState.originalData || !documentState.mapData) {
             setFeatureStatus("Generate a Painter's Value Map before analyzing features.", true);
             return;
         }
-        if (drawingMode) cancelDrawing();
-        if (paintMode) endPainting();
-        if (massSelectionMode) cancelMassSelection();
+        if (interactionState.drawingMode) cancelDrawing();
+        if (interactionState.paintMode) endPainting();
+        if (interactionState.massSelectionMode) cancelMassSelection();
         const button = $("analyzeFeatures");
         button.disabled = true;
         button.textContent = "Analyzing...";
@@ -502,22 +471,22 @@ document.addEventListener("DOMContentLoaded", () => {
         $("detectedFeature").disabled = true;
         setAnalysisBusy(true);
         try {
-            detectedFeatures = await TonalValueDesignerFeatureSegmentation.analyze(
-                originalData,
+            interactionState.detectedFeatures = await TonalValueDesignerFeatureSegmentation.analyze(
+                documentState.originalData,
                 reportAnalysisProgress
             );
             renderDetectedFeatures();
-            const labels = new Set(detectedFeatures.map(feature => feature.label));
-            const recognizedObjects = detectedFeatures.filter(feature => feature.source === "object").length;
-            setFeatureStatus(`Found ${detectedFeatures.length} selectable features in ${labels.size} categories, including ${recognizedObjects} recognized ${recognizedObjects === 1 ? "object" : "objects"}. Choose one and select it.`);
+            const labels = new Set(interactionState.detectedFeatures.map(feature => feature.label));
+            const recognizedObjects = interactionState.detectedFeatures.filter(feature => feature.source === "object").length;
+            setFeatureStatus(`Found ${interactionState.detectedFeatures.length} selectable features in ${labels.size} categories, including ${recognizedObjects} recognized ${recognizedObjects === 1 ? "object" : "objects"}. Choose one and select it.`);
         } catch (error) {
             console.error("Feature analysis failed", error);
-            detectedFeatures = [];
+            interactionState.detectedFeatures = [];
             renderDetectedFeatures();
             setFeatureStatus(`Feature analysis was not completed: ${describeAnalysisError(error)}`, true);
         } finally {
             setAnalysisBusy(false);
-            button.disabled = phoneFeatureRestricted || !mapData;
+            button.disabled = phoneFeatureRestricted || !documentState.mapData;
             button.textContent = "Analyze Image";
         }
     }
@@ -526,7 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const counts = new Uint32Array(256);
         for (const span of spans) {
             for (let x = span.startX; x <= span.endX; x += 1) {
-                counts[mapData.data[(span.y * mapData.width + x) * 4]] += 1;
+                counts[documentState.mapData.data[(span.y * documentState.mapData.width + x) * 4]] += 1;
             }
         }
         let gray = 0;
@@ -537,28 +506,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function selectDetectedFeature() {
-        if (!mapData || !detectedFeatures.length) return;
-        const feature = detectedFeatures[Number($("detectedFeature").value)];
+        if (!documentState.mapData || !interactionState.detectedFeatures.length) return;
+        const feature = interactionState.detectedFeatures[Number($("detectedFeature").value)];
         if (!feature) return;
         exitExplicitPanMode();
-        if (drawingMode) cancelDrawing();
-        if (paintMode) endPainting();
-        if (massSelectionMode) cancelMassSelection();
-        if (!showingMap) {
-            showingMap = true;
+        if (interactionState.drawingMode) cancelDrawing();
+        if (interactionState.paintMode) endPainting();
+        if (interactionState.massSelectionMode) cancelMassSelection();
+        if (!documentState.showingMap) {
+            documentState.showingMap = true;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
-        massSelectionMode = true;
-        featureSelectionActive = true;
-        selectedMass = {
+        interactionState.massSelectionMode = true;
+        interactionState.featureSelectionActive = true;
+        interactionState.selectedMass = {
             spans: feature.spans.map(span => ({ ...span })),
             size: feature.size,
             sourceGray: dominantSelectionGray(feature.spans),
             width: feature.width,
             height: feature.height
         };
-        selectedPoint = measurement = null;
+        documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
         $("measurementResult").hidden = true;
         viewport.setInteractionEnabled(false);
@@ -568,9 +537,9 @@ document.addEventListener("DOMContentLoaded", () => {
         $("addSelectionArea").disabled = false;
         $("removeSelectionArea").disabled = false;
         $("cancelMassSelection").disabled = false;
-        const sourceValue = retainedValues.reduce((nearest, value) =>
-            Math.abs(TonalValueDesignerValueMap.grayForPainterValue(value) - selectedMass.sourceGray) <
-            Math.abs(TonalValueDesignerValueMap.grayForPainterValue(nearest) - selectedMass.sourceGray) ? value : nearest
+        const sourceValue = documentState.retainedValues.reduce((nearest, value) =>
+            Math.abs(CoreEngine.grayForPainterValue(value) - interactionState.selectedMass.sourceGray) <
+            Math.abs(CoreEngine.grayForPainterValue(nearest) - interactionState.selectedMass.sourceGray) ? value : nearest
         );
         $("selectedMassValue").value = String(sourceValue);
         $("splitFeatureByValue").disabled = Boolean(feature.parentFeature);
@@ -581,40 +550,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function splitSelectedFeatureByValue() {
-        if (!featureSelectionActive || !selectedMass || !mapData) return;
-        const feature = detectedFeatures[Number($("detectedFeature").value)];
+        if (!interactionState.featureSelectionActive || !interactionState.selectedMass || !documentState.mapData) return;
+        const feature = interactionState.detectedFeatures[Number($("detectedFeature").value)];
         if (!feature || feature.parentFeature) return;
         const divisions = TonalValueDesignerFeatureSegmentation.splitByValue(
             feature,
-            mapData,
-            retainedValues,
-            TonalValueDesignerValueMap.grayForPainterValue
+            documentState.mapData,
+            documentState.retainedValues,
+            CoreEngine.grayForPainterValue
         );
         if (divisions.length < 2) {
             setFeatureStatus(`${feature.name} contains only one substantial Painter's Value division.`);
             return;
         }
 
-        detectedFeatures = detectedFeatures.filter(candidate => candidate.parentFeature !== feature);
-        const parentIndex = detectedFeatures.indexOf(feature);
-        detectedFeatures.splice(parentIndex + 1, 0, ...divisions);
+        interactionState.detectedFeatures = interactionState.detectedFeatures.filter(candidate => candidate.parentFeature !== feature);
+        const parentIndex = interactionState.detectedFeatures.indexOf(feature);
+        interactionState.detectedFeatures.splice(parentIndex + 1, 0, ...divisions);
         renderDetectedFeatures();
         $("detectedFeature").value = String(parentIndex + 1);
         selectDetectedFeature();
         setFeatureStatus(`${feature.name} was split into ${divisions.length} substantial value divisions. The largest division is highlighted.`);
     }
 
-    function updateMode() { $("modeIndicator").textContent = explicitPanMode ? "Pan Image" : showingMap ? "Painter's Value Map" : "Original"; }
+    function updateMode() { $("modeIndicator").textContent = interactionState.explicitPanMode ? "Pan Image" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
 
     function resetMassing() {
         clearPaintState();
         clearMassSelectionState();
-        drawingMode = false;
-        drawingPointer = null;
-        lassoPoints = [];
-        lassoComplete = false;
-        baseMapData = null;
-        massingHistory = [];
+        interactionState.drawingMode = false;
+        interactionState.drawingPointer = null;
+        interactionState.lassoPoints = [];
+        interactionState.lassoComplete = false;
+        editHistory.clear();
         viewport.setInteractionEnabled(true);
         drawingSurface.classList.remove("drawing-area");
         $("drawArea").classList.remove("active-mode");
@@ -646,8 +614,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function prepareMassing(values) {
-        if (drawingMode) cancelDrawing();
-        if (massSelectionMode) cancelMassSelection();
+        if (interactionState.drawingMode) cancelDrawing();
+        if (interactionState.massSelectionMode) cancelMassSelection();
         const select = $("massingValue");
         const massSelect = $("selectedMassValue");
         const paintSelect = $("paintValue");
@@ -672,8 +640,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("drawArea").disabled = false;
         $("applyMassing").disabled = true;
         $("cancelMassing").disabled = true;
-        baseMapData = TonalValueDesignerMassing.cloneImageData(mapData);
-        massingHistory = [];
+        editHistory.reset(CoreEngine.cloneImageData(documentState.mapData));
         setUndoAvailable(false);
         paintSelect.disabled = false;
         $("brushSize").disabled = false;
@@ -683,29 +650,29 @@ document.addEventListener("DOMContentLoaded", () => {
         setMassingStatus("Choose a value, then draw a free-form boundary around the area to simplify. Hold shift key to draw a straight line.");
         setMassSelectionStatus("Choose Select Mass, then tap or click one shape in the value map.");
         $("analyzeFeatures").disabled = phoneFeatureRestricted;
-        $("selectFeature").disabled = detectedFeatures.length === 0;
+        $("selectFeature").disabled = interactionState.detectedFeatures.length === 0;
         $("splitFeatureByValue").disabled = true;
-        setFeatureStatus(detectedFeatures.length
-            ? `${detectedFeatures.length} broad features are available for this image.`
+        setFeatureStatus(interactionState.detectedFeatures.length
+            ? `${interactionState.detectedFeatures.length} broad features are available for this image.`
             : "Select Analyze Image to identify broad features on this device.");
     }
 
     function beginDrawing() {
-        if (!mapData) return;
+        if (!documentState.mapData) return;
         exitExplicitPanMode();
-        if (paintMode) endPainting();
-        if (massSelectionMode) cancelMassSelection();
-        if (!showingMap) {
-            showingMap = true;
+        if (interactionState.paintMode) endPainting();
+        if (interactionState.massSelectionMode) cancelMassSelection();
+        if (!documentState.showingMap) {
+            documentState.showingMap = true;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
-        drawingMode = true;
-        drawingPointer = null;
-        straightSegmentAnchorIndex = null;
-        lassoPoints = [];
-        lassoComplete = false;
-        selectedPoint = measurement = null;
+        interactionState.drawingMode = true;
+        interactionState.drawingPointer = null;
+        interactionState.straightSegmentAnchorIndex = null;
+        interactionState.lassoPoints = [];
+        interactionState.lassoComplete = false;
+        documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
         $("measurementResult").hidden = true;
         viewport.setInteractionEnabled(false);
@@ -720,75 +687,75 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handleDrawingStart(event) {
-        if ((!drawingMode && !selectionRefineMode) || drawingPointer !== null) return;
+        if ((!interactionState.drawingMode && !interactionState.selectionRefineMode) || interactionState.drawingPointer !== null) return;
         event.preventDefault();
-        drawingPointer = event.pointerId;
-        straightSegmentAnchorIndex = null;
+        interactionState.drawingPointer = event.pointerId;
+        interactionState.straightSegmentAnchorIndex = null;
         drawingSurface.setPointerCapture(event.pointerId);
         const point = boundedImagePoint(event);
-        lassoPoints = point ? [point] : [];
-        lassoComplete = false;
+        interactionState.lassoPoints = point ? [point] : [];
+        interactionState.lassoComplete = false;
         redraw();
     }
 
     function handleDrawingMove(event) {
-        if ((!drawingMode && !selectionRefineMode) || event.pointerId !== drawingPointer || !lassoPoints.length) return;
+        if ((!interactionState.drawingMode && !interactionState.selectionRefineMode) || event.pointerId !== interactionState.drawingPointer || !interactionState.lassoPoints.length) return;
         event.preventDefault();
         const point = boundedImagePoint(event);
         if (!point) return;
 
-        if (drawingMode && event.shiftKey) {
-            if (straightSegmentAnchorIndex === null) {
-                straightSegmentAnchorIndex = lassoPoints.length - 1;
-                lassoPoints.push(point);
+        if (interactionState.drawingMode && event.shiftKey) {
+            if (interactionState.straightSegmentAnchorIndex === null) {
+                interactionState.straightSegmentAnchorIndex = interactionState.lassoPoints.length - 1;
+                interactionState.lassoPoints.push(point);
             } else {
-                lassoPoints.length = straightSegmentAnchorIndex + 1;
-                lassoPoints.push(point);
+                interactionState.lassoPoints.length = interactionState.straightSegmentAnchorIndex + 1;
+                interactionState.lassoPoints.push(point);
             }
             redraw();
             return;
         }
 
-        if (drawingMode && straightSegmentAnchorIndex !== null) {
-            straightSegmentAnchorIndex = null;
+        if (interactionState.drawingMode && interactionState.straightSegmentAnchorIndex !== null) {
+            interactionState.straightSegmentAnchorIndex = null;
         }
-        const previous = lassoPoints[lassoPoints.length - 1];
+        const previous = interactionState.lassoPoints[interactionState.lassoPoints.length - 1];
         const minimumSpacing = Math.max(1, 2 / viewport.getScale());
         if (Math.hypot(point.x - previous.x, point.y - previous.y) >= minimumSpacing) {
-            lassoPoints.push(point);
+            interactionState.lassoPoints.push(point);
             redraw();
         }
     }
 
     function handleDrawingEnd(event) {
-        if ((!drawingMode && !selectionRefineMode) || event.pointerId !== drawingPointer) return;
+        if ((!interactionState.drawingMode && !interactionState.selectionRefineMode) || event.pointerId !== interactionState.drawingPointer) return;
         event.preventDefault();
-        drawingPointer = null;
-        straightSegmentAnchorIndex = null;
-        if (lassoPoints.length < 3) {
-            lassoPoints = [];
-            if (selectionRefineMode) setMassSelectionStatus("The boundary was too small. Draw a larger enclosed area.", true);
+        interactionState.drawingPointer = null;
+        interactionState.straightSegmentAnchorIndex = null;
+        if (interactionState.lassoPoints.length < 3) {
+            interactionState.lassoPoints = [];
+            if (interactionState.selectionRefineMode) setMassSelectionStatus("The boundary was too small. Draw a larger enclosed area.", true);
             else setMassingStatus("The boundary was too small. Draw a larger enclosed area.", true);
             redraw();
             return;
         }
-        if (selectionRefineMode) {
+        if (interactionState.selectionRefineMode) {
             applySelectionRefinement();
             return;
         }
-        lassoComplete = true;
+        interactionState.lassoComplete = true;
         $("applyMassing").disabled = false;
         setMassingStatus("Boundary ready. Apply the selected value or cancel and redraw.");
         redraw();
     }
 
     function handleDrawingCancel(event) {
-        if ((drawingMode || selectionRefineMode) && event.pointerId === drawingPointer) {
-            drawingPointer = null;
-            straightSegmentAnchorIndex = null;
-            lassoPoints = [];
-            lassoComplete = false;
-            if (selectionRefineMode) setMassSelectionStatus("Refinement interrupted. Draw the boundary again.", true);
+        if ((interactionState.drawingMode || interactionState.selectionRefineMode) && event.pointerId === interactionState.drawingPointer) {
+            interactionState.drawingPointer = null;
+            interactionState.straightSegmentAnchorIndex = null;
+            interactionState.lassoPoints = [];
+            interactionState.lassoComplete = false;
+            if (interactionState.selectionRefineMode) setMassSelectionStatus("Refinement interrupted. Draw the boundary again.", true);
             else {
                 $("applyMassing").disabled = true;
                 setMassingStatus("Drawing interrupted. Draw the boundary again.", true);
@@ -804,16 +771,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applyMassing() {
-        if (!mapData || !lassoComplete || lassoPoints.length < 3) return;
+        if (!documentState.mapData || !interactionState.lassoComplete || interactionState.lassoPoints.length < 3) return;
         const targetValue = Number($("massingValue").value);
         try {
             const operation = {
                 type: "directed",
-                points: lassoPoints.map(point => ({ x: point.x, y: point.y })),
+                points: interactionState.lassoPoints.map(point => ({ x: point.x, y: point.y })),
                 value: targetValue
             };
-            const result = applyMassingOperation(mapData, operation);
-            mapData = result.imageData;
+            const result = applyMassingOperation(documentState.mapData, operation);
+            documentState.mapData = result.imageData;
             recordMassingOperation(operation);
             cancelDrawing();
             setUndoAvailable(true);
@@ -825,20 +792,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginMassSelection() {
-        if (!mapData) return;
+        if (!documentState.mapData) return;
         exitExplicitPanMode();
-        if (paintMode) endPainting();
-        if (drawingMode) cancelDrawing();
-        if (!showingMap) {
-            showingMap = true;
+        if (interactionState.paintMode) endPainting();
+        if (interactionState.drawingMode) cancelDrawing();
+        if (!documentState.showingMap) {
+            documentState.showingMap = true;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
-        massSelectionMode = true;
-        selectionRefineMode = null;
-        selectedMass = null;
-        selectionHighlightCanvas = null;
-        selectedPoint = measurement = null;
+        interactionState.massSelectionMode = true;
+        interactionState.selectionRefineMode = null;
+        interactionState.selectedMass = null;
+        interactionState.selectionHighlightData = null;
+        documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
         $("measurementResult").hidden = true;
         viewport.setInteractionEnabled(false);
@@ -855,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handleMassSelection(event) {
-        if (!massSelectionMode || featureSelectionActive || selectionRefineMode || event.button > 0) return;
+        if (!interactionState.massSelectionMode || interactionState.featureSelectionActive || interactionState.selectionRefineMode || event.button > 0) return;
         event.preventDefault();
         const point = boundedImagePoint(event);
         if (!point) {
@@ -863,14 +830,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         try {
-            selectedMass = TonalValueDesignerMassSelection.identify(mapData, point.x, point.y);
+            interactionState.selectedMass = CoreEngine.identifyMass(documentState.mapData, point.x, point.y);
             updateSelectionHighlight();
             $("applyMassValue").disabled = false;
             $("addSelectionArea").disabled = false;
             $("removeSelectionArea").disabled = false;
-            const sourceValue = retainedValues.reduce((nearest, value) =>
-                Math.abs(TonalValueDesignerValueMap.grayForPainterValue(value) - selectedMass.sourceGray) <
-                Math.abs(TonalValueDesignerValueMap.grayForPainterValue(nearest) - selectedMass.sourceGray) ? value : nearest
+            const sourceValue = documentState.retainedValues.reduce((nearest, value) =>
+                Math.abs(CoreEngine.grayForPainterValue(value) - interactionState.selectedMass.sourceGray) <
+                Math.abs(CoreEngine.grayForPainterValue(nearest) - interactionState.selectedMass.sourceGray) ? value : nearest
             );
             $("selectedMassValue").value = String(sourceValue);
             setMassSelectionStatus(`Selected one Value ${sourceValue} mass. Choose its new value, then apply.`);
@@ -881,11 +848,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginSelectionRefinement(mode) {
-        if (!selectedMass || selectionRefineMode) return;
-        selectionRefineMode = mode;
-        drawingPointer = null;
-        lassoPoints = [];
-        lassoComplete = false;
+        if (!interactionState.selectedMass || interactionState.selectionRefineMode) return;
+        interactionState.selectionRefineMode = mode;
+        interactionState.drawingPointer = null;
+        interactionState.lassoPoints = [];
+        interactionState.lassoComplete = false;
         $("applyMassValue").disabled = true;
         $("addSelectionArea").disabled = true;
         $("removeSelectionArea").disabled = true;
@@ -897,13 +864,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applySelectionRefinement() {
-        const mode = selectionRefineMode;
+        const mode = interactionState.selectionRefineMode;
         try {
-            const result = TonalValueDesignerMassSelection.refine(selectedMass, lassoPoints, mode);
-            selectedMass = result.selection;
+            const result = CoreEngine.refineMassSelection(interactionState.selectedMass, interactionState.lassoPoints, mode);
+            interactionState.selectedMass = result.selection;
             updateSelectionHighlight();
             finishSelectionRefinement();
-            $("applyMassValue").disabled = selectedMass.size === 0;
+            $("applyMassValue").disabled = interactionState.selectedMass.size === 0;
             const action = mode === "add" ? "Added" : "Removed";
             setMassSelectionStatus(`${action} ${result.changed.toLocaleString()} image locations. Refine again or apply a new value.`);
             redraw();
@@ -915,47 +882,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateSelectionHighlight() {
-        const overlay = TonalValueDesignerMassSelection.createHighlight(selectedMass);
-        selectionHighlightCanvas = document.createElement("canvas");
-        selectionHighlightCanvas.width = overlay.width;
-        selectionHighlightCanvas.height = overlay.height;
-        selectionHighlightCanvas.getContext("2d").putImageData(overlay, 0, 0);
+        interactionState.selectionHighlightData = CoreEngine.createMassHighlight(interactionState.selectedMass);
     }
 
     function finishSelectionRefinement() {
-        selectionRefineMode = null;
-        drawingPointer = null;
-        lassoPoints = [];
-        lassoComplete = false;
+        interactionState.selectionRefineMode = null;
+        interactionState.drawingPointer = null;
+        interactionState.lassoPoints = [];
+        interactionState.lassoComplete = false;
         [$("addSelectionArea"), $("removeSelectionArea")].forEach(button => {
             button.classList.remove("active-mode");
             button.setAttribute("aria-pressed", "false");
-            button.disabled = !selectedMass;
+            button.disabled = !interactionState.selectedMass;
         });
     }
 
     function cancelSelectionRefinement(message = "") {
         finishSelectionRefinement();
-        $("applyMassValue").disabled = !selectedMass || selectedMass.size === 0;
+        $("applyMassValue").disabled = !interactionState.selectedMass || interactionState.selectedMass.size === 0;
         if (message) setMassSelectionStatus(message);
         redraw();
     }
 
     function applySelectedMassValue() {
-        if (!mapData || !selectedMass) return;
+        if (!documentState.mapData || !interactionState.selectedMass) return;
         const targetValue = Number($("selectedMassValue").value);
         try {
             const operation = {
                 type: "mass-selection",
-                spans: selectedMass.spans.map(span => ({ ...span })),
+                spans: interactionState.selectedMass.spans.map(span => ({ ...span })),
                 value: targetValue
             };
-            const result = applyMassingOperation(mapData, operation);
+            const result = applyMassingOperation(documentState.mapData, operation);
             if (result.changed === 0) {
                 setMassSelectionStatus(`The selected mass is already Value ${targetValue}.`);
                 return;
             }
-            mapData = result.imageData;
+            documentState.mapData = result.imageData;
             recordMassingOperation(operation);
             cancelMassSelection();
             setUndoAvailable(true);
@@ -968,15 +931,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function clearMassSelectionState() {
-        massSelectionMode = false;
-        selectionRefineMode = null;
-        selectedMass = null;
-        featureSelectionActive = false;
+        interactionState.massSelectionMode = false;
+        interactionState.selectionRefineMode = null;
+        interactionState.selectedMass = null;
+        interactionState.featureSelectionActive = false;
         $("splitFeatureByValue").disabled = true;
-        selectionHighlightCanvas = null;
-        drawingPointer = null;
-        lassoPoints = [];
-        lassoComplete = false;
+        interactionState.selectionHighlightData = null;
+        interactionState.drawingPointer = null;
+        interactionState.lassoPoints = [];
+        interactionState.lassoComplete = false;
         if (typeof viewport !== "undefined") viewport.setInteractionEnabled(true);
         if (typeof drawingSurface !== "undefined") drawingSurface.classList.remove("selecting-mass");
         const button = $("selectMass");
@@ -993,7 +956,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function cancelMassSelection(message = "") {
         clearMassSelectionState();
-        $("selectMass").disabled = !mapData;
+        $("selectMass").disabled = !documentState.mapData;
         $("applyMassValue").disabled = true;
         $("addSelectionArea").disabled = true;
         $("removeSelectionArea").disabled = true;
@@ -1008,22 +971,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginPainting() {
-        if (paintMode) {
+        if (interactionState.paintMode) {
             endPainting("Painting finished.");
             return;
         }
-        if (!mapData) return;
+        if (!documentState.mapData) return;
         exitExplicitPanMode();
-        if (drawingMode) cancelDrawing();
-        if (massSelectionMode) cancelMassSelection();
-        if (!showingMap) {
-            showingMap = true;
+        if (interactionState.drawingMode) cancelDrawing();
+        if (interactionState.massSelectionMode) cancelMassSelection();
+        if (!documentState.showingMap) {
+            documentState.showingMap = true;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
-        paintMode = true;
-        paintPaused = false;
-        selectedPoint = measurement = null;
+        interactionState.paintMode = true;
+        interactionState.paintPaused = false;
+        documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
         $("measurementResult").hidden = true;
         viewport.setInteractionEnabled(true);
@@ -1038,35 +1001,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function togglePanImage() {
-        if (paintMode) {
+        if (interactionState.paintMode) {
             finishBrushStroke();
-            paintPaused = !paintPaused;
-            paintGestureBlocked = false;
-            paintPointers.clear();
-            brushCursorPoint = null;
-            viewport.setSinglePointerEnabled(paintPaused);
-            drawingSurface.classList.toggle("painting-value", !paintPaused);
-            drawingSurface.classList.toggle("paint-pan", paintPaused);
-            setPanButtonActive(paintPaused);
-            setPaintStatus(paintPaused ? "Pan mode: drag the image. Select Pan Image again to resume painting." : "Paint mode resumed.");
+            interactionState.paintPaused = !interactionState.paintPaused;
+            interactionState.paintGestureBlocked = false;
+            interactionState.paintPointers.clear();
+            interactionState.brushCursorPoint = null;
+            viewport.setSinglePointerEnabled(interactionState.paintPaused);
+            drawingSurface.classList.toggle("painting-value", !interactionState.paintPaused);
+            drawingSurface.classList.toggle("paint-pan", interactionState.paintPaused);
+            setPanButtonActive(interactionState.paintPaused);
+            setPaintStatus(interactionState.paintPaused ? "Pan mode: drag the image. Select Pan Image again to resume painting." : "Paint mode resumed.");
             redraw();
             return;
         }
 
-        if (drawingMode) cancelDrawing("Drawing cancelled to pan the image.");
-        if (massSelectionMode) cancelMassSelection("Selection cancelled to pan the image.");
-        explicitPanMode = !explicitPanMode;
+        if (interactionState.drawingMode) cancelDrawing("Drawing cancelled to pan the image.");
+        if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled to pan the image.");
+        interactionState.explicitPanMode = !interactionState.explicitPanMode;
         viewport.setInteractionEnabled(true);
         viewport.setSinglePointerEnabled(true);
-        viewport.setTapEnabled(!explicitPanMode);
-        drawingSurface.classList.toggle("explicit-pan", explicitPanMode);
-        setPanButtonActive(explicitPanMode);
-        if (explicitPanMode) $("modeIndicator").textContent = "Pan Image";
+        viewport.setTapEnabled(!interactionState.explicitPanMode);
+        drawingSurface.classList.toggle("explicit-pan", interactionState.explicitPanMode);
+        setPanButtonActive(interactionState.explicitPanMode);
+        if (interactionState.explicitPanMode) $("modeIndicator").textContent = "Pan Image";
         else updateMode();
     }
 
     function exitExplicitPanMode() {
-        explicitPanMode = false;
+        interactionState.explicitPanMode = false;
         if (typeof viewport !== "undefined") viewport.setTapEnabled(true);
         if (typeof drawingSurface !== "undefined") drawingSurface.classList.remove("explicit-pan");
         setPanButtonActive(false);
@@ -1081,113 +1044,100 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handlePaintStart(event) {
-        if (!paintMode || paintPaused || event.button > 0) return;
+        if (!interactionState.paintMode || interactionState.paintPaused || event.button > 0) return;
         event.preventDefault();
-        paintPointers.add(event.pointerId);
-        if (paintPointers.size > 1) {
+        interactionState.paintPointers.add(event.pointerId);
+        if (interactionState.paintPointers.size > 1) {
             finishBrushStroke();
-            brushPointer = null;
-            paintGestureBlocked = true;
-            brushCursorPoint = null;
+            interactionState.brushPointer = null;
+            interactionState.paintGestureBlocked = true;
+            interactionState.brushCursorPoint = null;
             redraw();
             return;
         }
-        if (paintGestureBlocked) return;
+        if (interactionState.paintGestureBlocked) return;
         const point = boundedImagePoint(event);
         if (!point) return;
-        brushPointer = event.pointerId;
-        brushPoints = [point];
-        brushStrokeChanged = 0;
-        brushCursorPoint = point;
+        interactionState.brushPointer = event.pointerId;
+        interactionState.brushPoints = [point];
+        interactionState.brushStrokeChanged = 0;
+        interactionState.brushCursorPoint = point;
         applyBrushSegment([point]);
         redraw();
     }
 
     function handlePaintMove(event) {
-        if (!paintMode || paintPaused) return;
+        if (!interactionState.paintMode || interactionState.paintPaused) return;
         const point = boundedImagePoint(event);
-        if (point && paintPointers.size < 2) brushCursorPoint = point;
-        if (event.pointerId === brushPointer && paintPointers.size === 1 && point) {
-            const previous = brushPoints[brushPoints.length - 1];
-            brushPoints.push(point);
+        if (point && interactionState.paintPointers.size < 2) interactionState.brushCursorPoint = point;
+        if (event.pointerId === interactionState.brushPointer && interactionState.paintPointers.size === 1 && point) {
+            const previous = interactionState.brushPoints[interactionState.brushPoints.length - 1];
+            interactionState.brushPoints.push(point);
             applyBrushSegment([previous, point]);
         }
         redraw();
     }
 
     function handlePaintEnd(event) {
-        if (!paintMode) return;
-        paintPointers.delete(event.pointerId);
-        if (event.pointerId === brushPointer) {
+        if (!interactionState.paintMode) return;
+        interactionState.paintPointers.delete(event.pointerId);
+        if (event.pointerId === interactionState.brushPointer) {
             finishBrushStroke();
-            brushPointer = null;
+            interactionState.brushPointer = null;
         }
-        if (paintPointers.size === 0) paintGestureBlocked = false;
-        if (event.pointerType !== "mouse") brushCursorPoint = null;
+        if (interactionState.paintPointers.size === 0) interactionState.paintGestureBlocked = false;
+        if (event.pointerType !== "mouse") interactionState.brushCursorPoint = null;
         redraw();
     }
 
     function handlePaintLeave(event) {
-        if (paintMode && event.pointerType === "mouse" && brushPointer === null) {
-            brushCursorPoint = null;
+        if (interactionState.paintMode && event.pointerType === "mouse" && interactionState.brushPointer === null) {
+            interactionState.brushCursorPoint = null;
             redraw();
         }
     }
 
     function applyBrushSegment(points) {
-        const result = TonalValueDesignerValueBrush.applyStrokeInPlace(mapData, points, Number($("paintValue").value), currentBrushRadius());
-        mapData = result.imageData;
-        brushStrokeChanged += result.changed;
+        const result = CoreEngine.applyBrushStrokeInPlace(documentState.mapData, points, Number($("paintValue").value), currentBrushRadius());
+        documentState.mapData = result.imageData;
+        interactionState.brushStrokeChanged += result.changed;
     }
 
     function finishBrushStroke() {
-        if (!brushPoints.length) return;
-        if (brushStrokeChanged > 0) {
+        if (!interactionState.brushPoints.length) return;
+        if (interactionState.brushStrokeChanged > 0) {
             recordMassingOperation({
                 type: "paint",
-                points: brushPoints.map(point => ({ x: point.x, y: point.y })),
+                points: interactionState.brushPoints.map(point => ({ x: point.x, y: point.y })),
                 value: Number($("paintValue").value),
                 radius: currentBrushRadius()
             });
             setUndoAvailable(true);
-            setPaintStatus(`Painted one stroke (${brushStrokeChanged.toLocaleString()} image locations changed).`);
+            setPaintStatus(`Painted one stroke (${interactionState.brushStrokeChanged.toLocaleString()} image locations changed).`);
         }
-        brushPoints = [];
-        brushStrokeChanged = 0;
+        interactionState.brushPoints = [];
+        interactionState.brushStrokeChanged = 0;
     }
 
     function currentBrushRadius() {
-        return TonalValueDesignerValueBrush.radiusForSize(canvas.width, canvas.height, Number($("brushSize").value));
-    }
-
-    function drawBrushCursor() {
-        context.save();
-        context.beginPath();
-        context.arc(brushCursorPoint.x, brushCursorPoint.y, currentBrushRadius(), 0, Math.PI * 2);
-        context.lineWidth = Math.max(1, 2 / viewport.getScale());
-        context.strokeStyle = "rgba(0,0,0,.9)";
-        context.stroke();
-        context.lineWidth = Math.max(1, 1 / viewport.getScale());
-        context.strokeStyle = "white";
-        context.stroke();
-        context.restore();
+        return CoreEngine.brushRadiusForSize(canvas.width, canvas.height, Number($("brushSize").value));
     }
 
     function clearPaintState() {
-        paintMode = false;
-        paintPaused = false;
-        brushPointer = null;
-        brushPoints = [];
-        brushStrokeChanged = 0;
-        brushCursorPoint = null;
-        paintGestureBlocked = false;
-        paintPointers.clear();
+        interactionState.paintMode = false;
+        interactionState.paintPaused = false;
+        interactionState.brushPointer = null;
+        interactionState.brushPoints = [];
+        interactionState.brushStrokeChanged = 0;
+        interactionState.brushCursorPoint = null;
+        interactionState.paintGestureBlocked = false;
+        interactionState.paintPointers.clear();
         if (typeof viewport !== "undefined") {
             viewport.setInteractionEnabled(true);
             viewport.setSinglePointerEnabled(true);
             viewport.setTapEnabled(true);
         }
-        explicitPanMode = false;
+        interactionState.explicitPanMode = false;
         if (typeof drawingSurface !== "undefined") drawingSurface.classList.remove("painting-value", "paint-pan", "explicit-pan");
         const paintButton = $("beginPainting");
         if (paintButton) {
@@ -1200,7 +1150,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function endPainting(message = "") {
         finishBrushStroke();
         clearPaintState();
-        $("beginPainting").disabled = !mapData;
+        $("beginPainting").disabled = !documentState.mapData;
         $("donePainting").disabled = true;
         if (message) setPaintStatus(message);
         redraw();
@@ -1213,12 +1163,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function applyMassingOperation(imageData, operation) {
         if (operation.type === "paint") {
-            return TonalValueDesignerValueBrush.applyStroke(imageData, operation.points, operation.value, operation.radius);
+            return CoreEngine.applyBrushStroke(imageData, operation.points, operation.value, operation.radius);
         }
         if (operation.type === "mass-selection") {
-            return TonalValueDesignerMassSelection.apply(imageData, operation.spans, operation.value);
+            return CoreEngine.applyMassValue(imageData, operation.spans, operation.value);
         }
-        return TonalValueDesignerMassing.applyPolygon(
+        return CoreEngine.applyPolygon(
             imageData,
             operation.points,
             operation.value
@@ -1226,11 +1176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function recordMassingOperation(operation) {
-        massingHistory.push(operation);
-        if (massingHistory.length > MASSING_UNDO_LIMIT) {
-            const committedOperation = massingHistory.shift();
-            baseMapData = applyMassingOperation(baseMapData, committedOperation).imageData;
-        }
+        editHistory.record(operation);
     }
 
     function setUndoAvailable(available) {
@@ -1240,47 +1186,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function undoMassing() {
-        if (drawingMode) cancelDrawing();
-        if (massSelectionMode) cancelMassSelection();
-        if (!massingHistory.length || !baseMapData) {
+        if (interactionState.drawingMode) cancelDrawing();
+        if (interactionState.massSelectionMode) cancelMassSelection();
+        if (!editHistory.canUndo) {
             setUndoAvailable(false);
             setMassingStatus("Undo limit reached. There are no earlier massing changes available.");
-            if (paintMode) setPaintStatus("Undo limit reached. There are no earlier strokes available.");
+            if (interactionState.paintMode) setPaintStatus("Undo limit reached. There are no earlier strokes available.");
             return;
         }
-        massingHistory.pop();
-        rebuildMassingHistory();
-        if (massingHistory.length === 0) {
+        const result = editHistory.undo();
+        documentState.mapData = result.imageData;
+        if (result.remaining === 0) {
             setUndoAvailable(false);
             setMassingStatus("Undo limit reached. There are no earlier massing changes available.");
-            if (paintMode) setPaintStatus("The last change was undone. Undo limit reached.");
+            if (interactionState.paintMode) setPaintStatus("The last change was undone. Undo limit reached.");
         } else {
             setUndoAvailable(true);
             setMassingStatus("The last massing change was undone.");
-            if (paintMode) setPaintStatus("The last change was undone.");
+            if (interactionState.paintMode) setPaintStatus("The last change was undone.");
         }
         redraw();
     }
 
-    function rebuildMassingHistory() {
-        let rebuilt = baseMapData;
-        for (const operation of massingHistory) {
-            rebuilt = applyMassingOperation(rebuilt, operation).imageData;
-        }
-        mapData = rebuilt;
-    }
-
     function cancelDrawing(message = "") {
-        drawingMode = false;
-        drawingPointer = null;
-        straightSegmentAnchorIndex = null;
-        lassoPoints = [];
-        lassoComplete = false;
+        interactionState.drawingMode = false;
+        interactionState.drawingPointer = null;
+        interactionState.straightSegmentAnchorIndex = null;
+        interactionState.lassoPoints = [];
+        interactionState.lassoComplete = false;
         viewport.setInteractionEnabled(true);
         drawingSurface.classList.remove("drawing-area");
         $("drawArea").classList.remove("active-mode");
         $("drawArea").setAttribute("aria-pressed", "false");
-        $("drawArea").disabled = !mapData;
+        $("drawArea").disabled = !documentState.mapData;
         $("applyMassing").disabled = true;
         $("cancelMassing").disabled = true;
         if (message) setMassingStatus(message);
@@ -1292,56 +1230,18 @@ document.addEventListener("DOMContentLoaded", () => {
         $("massingStatus").className = `massing-status${error ? " error" : ""}`;
     }
 
-    function drawLasso() {
-        if (lassoPoints.length < 2) return;
-        context.save();
-        context.beginPath();
-        context.moveTo(lassoPoints[0].x, lassoPoints[0].y);
-        for (let index = 1; index < lassoPoints.length; index += 1) {
-            context.lineTo(lassoPoints[index].x, lassoPoints[index].y);
-        }
-        if (lassoComplete) context.closePath();
-        context.lineWidth = Math.max(1, 2 / viewport.getScale());
-        context.setLineDash([6 / viewport.getScale(), 4 / viewport.getScale()]);
-        context.strokeStyle = "#ff3b30";
-        context.stroke();
-        context.setLineDash([]);
-        context.lineWidth = Math.max(1, 1 / viewport.getScale());
-        context.strokeStyle = "white";
-        context.stroke();
-        context.restore();
-    }
-
-    function averagePixels(centerX, centerY, requestedSize) {
-        const half = Math.floor(requestedSize / 2);
-        const left = Math.max(0, centerX - half);
-        const top = Math.max(0, centerY - half);
-        const right = Math.min(canvas.width - 1, centerX + half);
-        const bottom = Math.min(canvas.height - 1, centerY + half);
-        const width = right - left + 1;
-        const height = bottom - top + 1;
-        const pixels = context.getImageData(left, top, width, height).data;
-        let red = 0, green = 0, blue = 0, alpha = 0;
-        for (let index = 0; index < pixels.length; index += 4) {
-            const weight = pixels[index + 3] / 255;
-            red += pixels[index] * weight;
-            green += pixels[index + 1] * weight;
-            blue += pixels[index + 2] * weight;
-            alpha += weight;
-        }
-        return { red: alpha ? Math.round(red / alpha) : 0, green: alpha ? Math.round(green / alpha) : 0, blue: alpha ? Math.round(blue / alpha) : 0, width, height };
-    }
-
     function measure() {
-        drawBase();
-        const color = averagePixels(selectedPoint.x, selectedPoint.y, Number($("sampleSize").value));
-        const lab = TonalValueDesignerColor.rgbToLab(color.red, color.green, color.blue);
-        measurement = { ...color, lab, value: TonalValueDesignerColor.labLightnessToRoundedPainterValue(lab.l) };
+        documentState.measurement = CoreEngine.measureValue(
+            activeData(),
+            documentState.selectedPoint.x,
+            documentState.selectedPoint.y,
+            Number($("sampleSize").value)
+        );
         displayMeasurement();
         redraw();
     }
     function displayMeasurement() {
-        const item = measurement;
+        const item = documentState.measurement;
         $("emptyResult").hidden = true;
         $("measurementResult").hidden = false;
         $("painterValue").textContent = item.value.toFixed(1);
@@ -1351,14 +1251,14 @@ document.addEventListener("DOMContentLoaded", () => {
         $("rgbR").textContent = item.red;
         $("rgbG").textContent = item.green;
         $("rgbB").textContent = item.blue;
-        $("hexValue").textContent = TonalValueDesignerColor.rgbToHex(item.red, item.green, item.blue);
+        $("hexValue").textContent = CoreEngine.rgbToHex(item.red, item.green, item.blue);
         $("sampleDimensions").textContent = `${item.width} × ${item.height}`;
-        $("sampleCoordinates").textContent = `x ${selectedPoint.x}, y ${selectedPoint.y}`;
-        $("colorPreview").style.background = TonalValueDesignerColor.rgbToCss(item.red, item.green, item.blue);
+        $("sampleCoordinates").textContent = `x ${documentState.selectedPoint.x}, y ${documentState.selectedPoint.y}`;
+        $("colorPreview").style.background = CoreEngine.rgbToCss(item.red, item.green, item.blue);
         compare();
     }
     function signed(number) {
-        const value = TonalValueDesignerColor.roundTo(number, 1);
+        const value = CoreEngine.roundTo(number, 1);
         return `${value > 0 ? "+" : ""}${value.toFixed(1)}`;
     }
     function compare() {
@@ -1366,75 +1266,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const raw = $("targetValue").value;
         const target = Number(raw);
         const tolerance = Number($("targetTolerance").value);
-        if (!measurement || raw.trim() === "" || target < 1 || target > 10) { box.hidden = true; return; }
-        const difference = measurement.value - target;
+        if (!documentState.measurement || raw.trim() === "" || target < 1 || target > 10) { box.hidden = true; return; }
+        const difference = documentState.measurement.value - target;
         const absolute = Math.abs(difference);
         box.hidden = false;
         box.className = `target-comparison ${absolute <= tolerance ? "good" : difference > 0 ? "too-light" : "too-dark"}`;
         $("targetMessage").textContent = absolute <= tolerance
-            ? `On target: measured ${measurement.value.toFixed(1)}, planned ${target.toFixed(1)}.`
+            ? `On target: measured ${documentState.measurement.value.toFixed(1)}, planned ${target.toFixed(1)}.`
             : `Too ${difference > 0 ? "light" : "dark"} by ${absolute.toFixed(1)} value ${Math.abs(absolute - 1) < .05 ? "step" : "steps"}.`;
-    }
-    function drawCrosshair(x, y) {
-        const radius = TonalValueDesignerColor.clamp(Math.min(canvas.width, canvas.height) * .018, 8, 30);
-        const width = TonalValueDesignerColor.clamp(Math.min(canvas.width, canvas.height) * .002, 2, 5);
-        context.save();
-        [["rgba(0,0,0,.9)", width + 2], ["rgba(255,255,255,.95)", width]].forEach(([stroke, lineWidth]) => {
-            context.strokeStyle = stroke; context.lineWidth = lineWidth; context.beginPath();
-            context.arc(x, y, radius, 0, Math.PI * 2);
-            context.moveTo(x - radius * 1.45, y); context.lineTo(x - radius * .35, y);
-            context.moveTo(x + radius * .35, y); context.lineTo(x + radius * 1.45, y);
-            context.moveTo(x, y - radius * 1.45); context.lineTo(x, y - radius * .35);
-            context.moveTo(x, y + radius * .35); context.lineTo(x, y + radius * 1.45);
-            context.stroke();
-        });
-        context.restore();
-    }
-
-    function drawValueBadge(x, y, value) {
-        const scale = Math.max(viewport.getScale(), 0.01);
-        const text = `Value ${Number(value).toFixed(1)}`;
-        const fontSize = 16 / scale;
-        const horizontalPadding = 9 / scale;
-        const badgeHeight = 32 / scale;
-        const gap = 14 / scale;
-        const radius = 6 / scale;
-
-        context.save();
-        context.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        context.textAlign = "left";
-        context.textBaseline = "middle";
-
-        const badgeWidth = context.measureText(text).width + horizontalPadding * 2;
-        let badgeX = x + gap;
-        let badgeY = y - gap - badgeHeight;
-
-        // Flip the badge when the preferred position would cross an image
-        // edge, then keep the complete label within the photograph.
-        if (badgeX + badgeWidth > canvas.width) badgeX = x - gap - badgeWidth;
-        if (badgeY < 0) badgeY = y + gap;
-        badgeX = TonalValueDesignerColor.clamp(badgeX, 0, Math.max(0, canvas.width - badgeWidth));
-        badgeY = TonalValueDesignerColor.clamp(badgeY, 0, Math.max(0, canvas.height - badgeHeight));
-
-        context.beginPath();
-        context.moveTo(badgeX + radius, badgeY);
-        context.lineTo(badgeX + badgeWidth - radius, badgeY);
-        context.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + radius);
-        context.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - radius);
-        context.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - radius, badgeY + badgeHeight);
-        context.lineTo(badgeX + radius, badgeY + badgeHeight);
-        context.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - radius);
-        context.lineTo(badgeX, badgeY + radius);
-        context.quadraticCurveTo(badgeX, badgeY, badgeX + radius, badgeY);
-        context.closePath();
-        context.fillStyle = "rgba(24, 28, 34, 0.94)";
-        context.fill();
-        context.strokeStyle = "rgba(255, 255,255, 0.95)";
-        context.lineWidth = 1.5 / scale;
-        context.stroke();
-
-        context.fillStyle = "#ffffff";
-        context.fillText(text, badgeX + horizontalPadding, badgeY + badgeHeight / 2);
-        context.restore();
     }
 });

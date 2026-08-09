@@ -1,6 +1,6 @@
 "use strict";
 
-window.TonalValueDesignerFeatureSegmentation = (() => {
+const TonalValueDesignerFeatureSegmentation = (() => {
     const LIBRARY_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm";
     const SCENE_MODEL_ID = "Xenova/segformer-b0-finetuned-ade-512-512";
     const OBJECT_MODEL_ID = "Xenova/detr-resnet-50";
@@ -358,3 +358,5 @@ window.TonalValueDesignerFeatureSegmentation = (() => {
         sceneModelId: SCENE_MODEL_ID, objectModelId: OBJECT_MODEL_ID
     });
 })();
+
+export default TonalValueDesignerFeatureSegmentation;

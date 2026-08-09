@@ -1,6 +1,8 @@
 "use strict";
 
-window.TonalValueDesignerMassing = (() => {
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.1";
+
+const TonalValueDesignerMassing = (() => {
     function cloneImageData(imageData) {
         return new ImageData(
             new Uint8ClampedArray(imageData.data),
@@ -58,3 +60,5 @@ window.TonalValueDesignerMassing = (() => {
 
     return Object.freeze({ cloneImageData, applyPolygon });
 })();
+
+export default TonalValueDesignerMassing;

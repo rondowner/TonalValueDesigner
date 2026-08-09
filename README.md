@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.14.2
+# TonalValueDesigner 2.9.1
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -19,7 +19,7 @@ The photograph chooser remains visible while the remaining controls are organize
 
 Select the **Eye Trainer** tab to use the exercise inside TonalValueDesigner. The same shared application can be opened independently at `value-eye-trainer/index.html`. Score history is stored locally by the browser.
 
-The Eye Trainer provides two modes: **Value Identification** for estimating one swatch's value, and **Value Comparison** for deciding whether a second swatch is lighter, darker, or in the same whole-number value group as the first. **Value Comparison is the default mode.** Comparison range is configurable from 1 through 5 value steps. The official group-based answer earns 10 points; an otherwise incorrect answer earns 5 when the measured values are no more than 0.4 apart.
+The Eye Trainer provides two modes: **Value Identification** for estimating one swatch's value, and **Value Comparison** for deciding whether a second swatch is lighter, darker, or the same measured value as the first. **Value Comparison is the default mode.** Comparison range is configurable from 1 through 5 value steps. A correct directional answer earns 10 points for any measured difference, including 0.1; an otherwise incorrect answer earns 5 when the measured values are no more than 0.4 apart.
 
 The embedded presentation uses a reduced color swatch, one row of ten answer buttons, and compact typography, spacing, feedback, comparison, and navigation controls. These compact-layout changes do not affect the standalone trainer.
 
@@ -127,10 +127,18 @@ TonalValueDesigner/
 |-- CHANGELOG.md
 |-- js/
 |   |-- app.js
+|   |-- app.bundle.js
+|   |-- browserPlatform.js
+|   |-- canvasRenderer.js
 |   |-- color.js
+|   |-- coreEngine.js
+|   |-- documentState.js
+|   |-- editHistory.js
+|   |-- interactionState.js
 |   |-- valueMap.js
 |   |-- massing.js
 |   |-- massSelection.js
+|   |-- measurement.js
 |   |-- valueBrush.js
 |   |-- featureSegmentation.js
 |   |-- version.js
@@ -160,4 +168,36 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.14.2 was built on 2026-08-09. Select **About Tonal Value Designer** beside the header version to read the product purpose, six-part painting workflow, Value Eye Training overview, and proprietary notice.
+The header and footer display the running version. Version 2.9.1 was built on 2026-08-09. Select **About Tonal Value Designer** beside the header version to read the product purpose, six-part painting workflow, Value Eye Training overview, and proprietary notice.
+
+## Regression testing
+
+Version 2.0.0 establishes the regression baseline for the staged architectural refactor. It intentionally preserves the v1.14.2 production behavior.
+
+- Run `npm test` from the project folder for deterministic core-algorithm tests. No package installation is required.
+- Serve the project and open `tests/browser-regression.html` for the five supplied real-image tests.
+- Follow `tests/MANUAL-QA.md` before approving a refactoring release.
+
+## Architecture
+
+Beginning with version 2.1.0, the source uses standard JavaScript ES modules. Core components communicate through explicit `import` and `export` declarations rather than properties attached to the browser's `window` object. Version 2.1.1 adds the generated `js/app.bundle.js` production entry so the application works both through GitHub Pages and when `index.html` is opened directly from a local folder. Run `npm run build` after changing a production module.
+
+Version 2.2.0 adds `js/coreEngine.js`, the stable contract between the UI controller and the image-processing implementation. `app.js` now calls this engine instead of importing the color, value-map, massing, mass-selection, and value-brush modules directly. A future Rust/WebAssembly or Tauri implementation can replace the engine implementation while preserving the controller-facing contract.
+
+The contract and replacement rules are documented in `docs/CORE-ENGINE-CONTRACT.md`.
+
+Version 2.3.0 adds `js/browserPlatform.js`, which isolates device detection, local-image decoding, image-data canvas creation, and PNG saving from the UI controller. This provides a replaceable host boundary for future PWA and Tauri packaging. Its contract is documented in `docs/PLATFORM-CONTRACT.md`.
+
+Version 2.4.0 begins controller-state separation with `js/editHistory.js`. The bounded undo baseline and operation list shared by area massing, value painting, and selected-mass adjustments are now independent of DOM controls and status messages. See `docs/EDIT-HISTORY-CONTRACT.md`.
+
+Version 2.5.0 continues controller-state separation with `js/documentState.js`. The active source image, generated map, retained values, current sample, display mode, viewport scale, and export name are now stored in one host-neutral document-state object rather than eight independent variables in `app.js`. See `docs/DOCUMENT-STATE-CONTRACT.md`.
+
+Version 2.6.0 completes the current controller-state extraction with `js/interactionState.js`. Drawing, painting, selection refinement, feature-selection, pointer, and explicit-pan state now share one sealed interaction record rather than twenty independent variables in `app.js`. See `docs/INTERACTION-STATE-CONTRACT.md`.
+
+Version 2.7.0 adds `js/canvasRenderer.js`, the presentation boundary for the source/value image, selection overlay, area boundary, sampling marker and value badge, and painting cursor. The controller now describes the layers to display rather than issuing low-level canvas drawing commands. See `docs/CANVAS-RENDERER-CONTRACT.md`.
+
+Version 2.8.0 removes the remaining browser-canvas object from interaction state. Mass-selection highlighting is stored as engine-produced `ImageData`, while `canvasRenderer.js` owns and caches its conversion into a browser display layer. This keeps the selection result host-neutral for future Rust/WebAssembly or Tauri integration.
+
+Version 2.9.0 moves pixel averaging and complete Painter's Value measurement into `js/measurement.js` behind core-engine contract version 2. Sampling now consumes active document `ImageData` directly instead of reading pixels back from the presentation canvas, making the result deterministic and host-neutral.
+
+This is an internal architecture change only. Algorithms, browser image types, UI behavior, and saved output remain unchanged from the v2.0.0 regression baseline.

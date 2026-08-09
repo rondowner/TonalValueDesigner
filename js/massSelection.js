@@ -1,6 +1,9 @@
 "use strict";
 
-window.TonalValueDesignerMassSelection = (() => {
+import TonalValueDesignerMassing from "./massing.js?v=2.9.1";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.1";
+
+const TonalValueDesignerMassSelection = (() => {
     function identify(imageData, startX, startY) {
         if (!imageData) throw new Error("Generate a value map first.");
         const width = imageData.width;
@@ -163,3 +166,5 @@ window.TonalValueDesignerMassSelection = (() => {
 
     return Object.freeze({ identify, apply, createHighlight, refine });
 })();
+
+export default TonalValueDesignerMassSelection;

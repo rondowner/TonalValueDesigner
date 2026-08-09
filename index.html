@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <title>TonalValueDesigner</title>
-    <link rel="stylesheet" href="styles/styles.css?v=1.14.2">
+    <link rel="stylesheet" href="styles/styles.css?v=2.9.1">
     <style>
         body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
         .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
@@ -107,8 +107,8 @@
 </head>
 <body>
     <header class="app-header">
-        <div><h1>TonalValueDesigner</h1><p class="subtitle">Sample a photograph and estimate its painter's value.</p></div>
-        <div class="version-badge"><span id="appVersion">v1.14.2</span><span id="buildDate">Built 2026-08-09</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
+        <div><h1>TonalValueDesigner</h1><p class="subtitle">Create value maps, value studies, and make value-based design decisions.</p></div>
+        <div class="version-badge"><span id="appVersion">v2.9.1</span><span id="buildDate">Built 2026-08-09</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
     </header>
 
     <main id="appLayout" class="app-layout">
@@ -257,7 +257,7 @@
             <div class="image-instructions"><p>Tap to sample. Drag to pan. Use the wheel or pinch to zoom.</p></div>
         </section>
         <section id="eyeTrainerWorkspace" class="eye-trainer-workspace" aria-label="Value Eye Trainer workspace" hidden>
-            <iframe class="eye-trainer-frame" src="value-eye-trainer/index.html?embedded=1&amp;v=0.9" title="Value Eye Trainer"></iframe>
+            <iframe class="eye-trainer-frame" src="value-eye-trainer/index.html?embedded=1&amp;v=0.11" title="Value Eye Trainer"></iframe>
         </section>
     </main>
 
@@ -302,7 +302,7 @@
         </div>
     </dialog>
 
-    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v1.14.2</span> — approximate, not a certified Munsell reading.</p></footer>
-    <script src="js/version.js?v=1.14.2"></script><script src="js/color.js?v=1.14.2"></script><script src="js/valueMap.js?v=1.14.2"></script><script src="js/massing.js?v=1.14.2"></script><script src="js/massSelection.js?v=1.14.2"></script><script src="js/valueBrush.js?v=1.14.2"></script><script src="js/viewport.js?v=1.14.2"></script><script src="js/featureSegmentation.js?v=1.14.2"></script><script src="js/app.js?v=1.14.2"></script>
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v2.9.1</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/app.bundle.js?v=2.9.1-trainer1"></script>
 </body>
 </html>

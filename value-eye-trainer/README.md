@@ -7,11 +7,11 @@ A standalone, mobile-first progressive web app for practicing painter-value reco
 - **Value Identification:** Estimate the Painter's Value of one color swatch from 1 through 10.
 - **Value Comparison:** Compare two differently colored swatches and decide whether the second is lighter, darker, or the same value as the first.
 
-Value Comparison includes a configurable maximum difference of 1 through 5 value steps, defaulting to 5. Values sharing the same whole-number group, such as 5.1 and 5.8, have the official answer **Same value**. Values in different groups have the official answer **Lighter** or **Darker** according to the second swatch.
+Value Comparison includes a configurable maximum difference of 1 through 5 value steps, defaulting to 5. The actual measured decimal values determine the official answer: the second swatch is **Lighter** or **Darker** whenever it differs in that direction by any amount, including 0.1. **Same value** is correct only when the displayed measured values are equal.
 
 Value Comparison is selected when the trainer first opens. You can switch to Value Identification at any time.
 
-The official answer earns 10 points. When the measured values are no more than 0.4 apart, either incorrect answer still earns 5 points to recognize the perceptual ambiguity. Beyond 0.4, an incorrect answer earns no points.
+The official directional or same-value answer earns 10 points. When the measured values are no more than 0.4 apart, either incorrect answer still earns 5 points to recognize the perceptual ambiguity. Beyond 0.4, an incorrect answer earns no points.
 
 When embedded within TonalValueDesigner, the shared trainer automatically uses a compact layout with a substantially smaller swatch, one row of ten answer buttons, and reduced typography, spacing, feedback, and controls. Its standalone layout is unchanged.
 

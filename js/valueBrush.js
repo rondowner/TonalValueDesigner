@@ -1,6 +1,9 @@
 "use strict";
 
-window.TonalValueDesignerValueBrush = (() => {
+import TonalValueDesignerMassing from "./massing.js?v=2.9.1";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.1";
+
+const TonalValueDesignerValueBrush = (() => {
     const SIZE_FRACTIONS = Object.freeze({
         1: 0.005,
         2: 0.012,
@@ -66,3 +69,5 @@ window.TonalValueDesignerValueBrush = (() => {
 
     return Object.freeze({ radiusForSize, applyStroke, applyStrokeInPlace });
 })();
+
+export default TonalValueDesignerValueBrush;

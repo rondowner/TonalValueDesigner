@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Tonal Value Designer — Real-image regression tests</title>
+    <style>
+        body{font-family:system-ui,sans-serif;max-width:70rem;margin:2rem auto;padding:0 1rem;color:#222}table{width:100%;border-collapse:collapse}th,td{padding:.55rem;border:1px solid #ccc;text-align:left}.pass{background:#e9f6ec}.fail{background:#fff0e8}code{font-size:.85rem}
+    </style>
+</head>
+<body>
+    <h1>Real-image regression tests</h1>
+    <p id="summary">Running the supplied QA images…</p>
+    <table>
+        <thead><tr><th>Fixture</th><th>Dimensions</th><th>Result</th><th>Value-map hashes</th></tr></thead>
+        <tbody id="results"></tbody>
+    </table>
+    <details><summary>Captured baseline data</summary><pre id="capture">Waiting…</pre></details>
+    <script type="module" src="browser-regression.js?v=2.9.1-trainer1"></script>
+</body>
+</html>

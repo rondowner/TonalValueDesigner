@@ -1,5 +1,5 @@
 "use strict";
-window.TonalValueDesignerViewport=function({container,stage,canvas,onTap,onChange}){
+export default function TonalValueDesignerViewport({container,stage,canvas,onTap,onChange}){
  const MIN=.1,MAX=8,SLOP=7;let scale=1,x=0,y=0,start=null,moved=false,pinch=null,interactionEnabled=true,singlePointerEnabled=true,tapEnabled=true;const pointers=new Map();
  const size=()=>({w:container.clientWidth,h:container.clientHeight});
  function clampPan(){const{w,h}=size(),cw=canvas.width*scale,ch=canvas.height*scale,m=48;x=cw<=w?(w-cw)/2:Math.min(m,Math.max(w-cw-m,x));y=ch<=h?(h-ch)/2:Math.min(m,Math.max(h-ch-m,y));}
@@ -15,4 +15,4 @@ window.TonalValueDesignerViewport=function({container,stage,canvas,onTap,onChang
  function setInteractionEnabled(enabled){interactionEnabled=Boolean(enabled);if(!interactionEnabled){pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}}
  function setSinglePointerEnabled(enabled){singlePointerEnabled=Boolean(enabled);pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}
  function setTapEnabled(enabled){tapEnabled=Boolean(enabled);}
- return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,imagePoint,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};};
+ return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,imagePoint,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};}

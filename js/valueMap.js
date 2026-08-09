@@ -1,6 +1,8 @@
 "use strict";
 
-window.TonalValueDesignerValueMap = (() => {
+import TonalValueDesignerColor from "./color.js?v=2.9.1";
+
+const TonalValueDesignerValueMap = (() => {
     const linearChannels = new Float64Array(256);
     for (let channel = 0; channel < 256; channel += 1) {
         const normalized = channel / 255;
@@ -103,3 +105,5 @@ window.TonalValueDesignerValueMap = (() => {
 
     return Object.freeze({ parseValues, generate, makeLegend, grayForPainterValue });
 })();
+
+export default TonalValueDesignerValueMap;

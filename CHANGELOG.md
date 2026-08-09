@@ -1,5 +1,114 @@
 # Changelog
 
+## 2.9.1 - 2026-08-09
+
+- Changed the header tagline to emphasize value maps, value studies, and value-based design decisions.
+- Changed unsuccessful Value Eye Trainer feedback from **Keep looking** to **Try Again**.
+- Changed Value Comparison so a correct lighter/darker answer earns full credit for any measured directional difference, including 0.1 within the same whole-number value group.
+- Retained half credit for an otherwise incorrect answer when the two measured values are no more than 0.4 apart.
+- Updated the embedded and standalone trainer cache versions and scoring documentation.
+
+## 2.9.0 - 2026-08-09
+
+- Extracted sample-area averaging and complete Painter's Value measurement into `js/measurement.js`.
+- Added `averagePixels` and `measureValue` to core-engine contract version 2.
+- Changed the controller to sample active document `ImageData` directly rather than reading pixels from the presentation canvas.
+- Added deterministic coverage for single-point measurement, area averaging, edge clipping, and controller delegation.
+- No intentional measurement result, sampling UI, visual, value-map, massing, or saved-output changes.
+
+## 2.8.0 - 2026-08-09
+
+- Replaced the browser-canvas selection highlight stored in interaction state with host-neutral engine-produced `ImageData`.
+- Moved selection-overlay canvas creation and caching behind `canvasRenderer.js`.
+- Removed direct selection-overlay conversion from the mass-selection controller workflow.
+- Updated renderer and interaction-state contracts and regression coverage for the new data boundary.
+- No intentional selection, refinement, visual, sampling, algorithm, UI, or saved-output changes.
+
+## 2.7.1 - 2026-08-09
+
+- Fixed value sampling after the v2.7.0 renderer extraction.
+- Replaced a stale call to the removed `drawBase()` controller helper with a base-only canvas-renderer pass before pixel averaging.
+- Added a regression guard that verifies sampling clears presentation overlays through the renderer before reading image pixels.
+- No other intentional behavior changes.
+
+## 2.7.0 - 2026-08-09
+
+- Extracted canvas presentation from the UI controller into `js/canvasRenderer.js`.
+- Moved rendering of the source/value image, selection overlay, area boundary, sample crosshair and value badge, and painting cursor behind one renderer contract.
+- Changed `app.js` to submit a compact layer description instead of issuing low-level drawing commands.
+- Added a renderer contract and mock-canvas regression coverage for layer composition and the public renderer interface.
+- Preserved the existing interaction-state, document-state, edit-history, platform, core-engine, and local-file-compatible production boundaries.
+- No intentional visual, algorithm, UI, zoom, sampling, drawing, painting, selection, or saved-output changes.
+
+## 2.6.0 - 2026-08-09
+
+- Extracted transient drawing, painting, mass-selection, feature-selection, pointer, and explicit-pan state from the UI controller into `js/interactionState.js`.
+- Consolidated twenty mutable interaction fields behind one sealed, host-neutral state boundary.
+- Added an interaction-state contract and regression coverage for its idle defaults, pointer collection, mutability, and stable field structure.
+- Preserved the existing document-state, edit-history, platform, core-engine, and local-file-compatible production boundaries.
+- No intentional algorithm, UI, gesture, tool-mode, feature-analysis, undo, or saved-output changes.
+
+## 2.5.0 - 2026-08-09
+
+- Extracted active image and value-map document state from the UI controller into `js/documentState.js`.
+- Consolidated source image data, generated map data, retained values, sampling state, display mode, viewport scale, and export name behind one host-neutral state boundary.
+- Sealed the document-state structure and added regression coverage for its initial state and stable field contract.
+- Added a document-state contract for future controller, PWA, Rust/WebAssembly, and Tauri work.
+- No intentional algorithm, UI, image-loading, sampling, massing, or saved-output changes.
+
+## 2.4.0 - 2026-08-09
+
+- Extracted the shared massing, painting, and mass-adjustment undo history from the UI controller into a standalone application-state service.
+- Isolated bounded-history commits and deterministic map reconstruction from buttons and status messages.
+- Added an edit-history contract and regression coverage for operation ordering, history limits, reconstruction, and repeated undo.
+- Retained the core-engine, platform, and local-file-compatible production boundaries.
+- No intentional algorithm, UI, undo-limit, or saved-output changes.
+
+## 2.3.0 - 2026-08-09
+
+- Added a versioned browser-platform contract for device detection, image decoding, image-data canvas creation, and PNG saving.
+- Removed direct object-URL, image-decoding, export-canvas, and download-link responsibilities from the main UI controller.
+- Documented the replacement rules for future PWA and Tauri host implementations.
+- Added a platform-contract regression test.
+- Retained the core-engine boundary and local-file-compatible production bundle.
+- No intentional algorithm, UI, supported-image, or saved-output changes.
+
+## 2.2.0 - 2026-08-09
+
+- Added a versioned core-engine contract as the sole controller-facing boundary for color conversion, value maps, directed massing, mass selection, and value painting.
+- Removed direct algorithm-module dependencies from the main UI controller.
+- Preserved the individual JavaScript algorithm modules behind the engine for focused testing and eventual incremental replacement.
+- Added a contract regression test proving the engine facade produces the same value-map output as the underlying implementation.
+- Retained the local-file-compatible production bundle introduced in v2.1.1.
+- No intentional algorithm, UI, image-type, or saved-output changes.
+
+## 2.1.1 - 2026-08-09
+
+- Fixed application startup and image loading when `index.html` is opened directly from a local folder.
+- Retained the ES-module source architecture introduced in v2.1.0.
+- Added a generated, browser-compatible production bundle for both local and hosted use.
+- Added an explicit build command to regenerate the production bundle after module changes.
+
+## 2.1.0 - 2026-08-09
+
+- Converted the main application, color engine, value-map engine, massing tools, mass-selection tools, value brush, viewport, feature analysis, and version metadata from browser globals to standard ES modules.
+- Replaced nine separately ordered production script tags with one `type="module"` application entry point.
+- Added explicit module dependency declarations and versioned dependency URLs to prevent stale pre-module files from being reused after deployment.
+- Converted the Node and browser regression harnesses to consume the same ES modules as production.
+- Added a module-isolation regression test confirming core modules no longer publish legacy `window` globals.
+- Passed 9/9 deterministic tests and 5/5 supplied real-image regression tests with unchanged output hashes.
+- Confirmed the Blue Jay 3-value workflow in the browser with no console errors.
+- No intentional algorithm, UI, image-type, or output changes from v2.0.0.
+
+## 2.0.0 - 2026-08-09
+
+- Established the regression-test foundation for the staged architectural refactor.
+- Added eight deterministic tests covering color conversion, Painter's Value parsing, value-map generation, polygon massing, connected-mass selection, selection refinement, value painting, and feature splitting.
+- Added five owner-supplied real-image fixtures spanning portrait, bird, detailed landscape, broad landscape, and sunset use cases.
+- Captured exact 3-value and 5-value map baselines for all five QA images; all five browser regressions pass.
+- Added a repeatable manual QA checklist for desktop, tablet/phone sampling, Value Massing, AI feature analysis, and the embedded/standalone Eye Trainer.
+- No intentional production behavior changes from v1.14.2.
+
 ## 1.14.2 - 2026-08-09
 
 - Refined the section 5 heading in the About dialog.

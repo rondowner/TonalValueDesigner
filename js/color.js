@@ -78,7 +78,7 @@
 
 
 
-window.TonalValueDesignerColor = (() => {
+const TonalValueDesignerColor = (() => {
 
 
 
@@ -1037,3 +1037,5 @@ window.TonalValueDesignerColor = (() => {
 
 
 })();
+
+export default TonalValueDesignerColor;
