@@ -1,4 +1,4 @@
-# TonalValueDesigner 1.14.0
+# TonalValueDesigner 1.14.2
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -102,8 +102,8 @@ The prototype pins Transformers.js 3.8.1 and uses the quantized `Xenova/segforme
 ## Value Massing: By Area
 
 1. Generate a Painter's Value Map.
-2. In **Directed Value Massing**, choose the value that should fill the area.
-3. Select **Draw Area** and trace a free-form boundary directly over the map. Release to close it.
+2. In **Value Massing: By Area**, choose the value that should fill the area.
+3. Select **Draw Area** and trace a boundary directly over the map. Draw free-form normally, or hold Shift temporarily to draw a straight segment. Release Shift to continue free-form drawing. Release the pointer to close the boundary.
 4. Select **Apply Value** to normalize everything inside the boundary.
 5. Use **Undo Last** repeatedly for up to ten recent changes, or **Save PNG** to export the edited map.
 
@@ -160,4 +160,4 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 1.14.0 was built on 2026-08-08. Select **About Tonal Value Designer** beside the header version to read the product purpose, six-part painting workflow, Value Eye Training overview, and proprietary notice.
+The header and footer display the running version. Version 1.14.2 was built on 2026-08-09. Select **About Tonal Value Designer** beside the header version to read the product purpose, six-part painting workflow, Value Eye Training overview, and proprietary notice.

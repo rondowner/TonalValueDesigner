@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.14.2 - 2026-08-09
+
+- Refined the section 5 heading in the About dialog.
+- Clarified the Value Eye Training introduction and explicitly labeled both training games.
+
+## 1.14.1 - 2026-08-09
+
+- Added Shift-controlled straight segments to **Value Massing: By Area** drawing on keyboard-equipped computers and tablets.
+- Free-form drawing resumes as soon as Shift is released, allowing curved and straight segments in one boundary.
+- Updated the Value Massing guidance and About dialog to explain the mixed free-form and straight-line workflow.
+
 ## 1.14.0 - 2026-08-08
 
 - Replaced the About dialog wording with the supplied `AboutTextWording.docx` content.

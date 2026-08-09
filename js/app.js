@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const release = window.TonalValueDesignerVersion || { version: "1.14.0", buildDate: "2026-08-08" };
+    const release = window.TonalValueDesignerVersion || { version: "1.14.2", buildDate: "2026-08-09" };
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
     $("buildDate").textContent = `Built ${release.buildDate}`;
@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let sourceName = "value-map";
     let drawingMode = false;
     let drawingPointer = null;
+    let straightSegmentAnchorIndex = null;
     let lassoPoints = [];
     let lassoComplete = false;
     let baseMapData = null;
@@ -165,6 +166,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (massSelectionMode && event.key === "Escape") {
             event.preventDefault();
             cancelMassSelection("Selection cancelled with Escape.");
+        }
+    });
+    document.addEventListener("keyup", event => {
+        if (drawingMode && event.key === "Shift") {
+            straightSegmentAnchorIndex = null;
         }
     });
 
@@ -674,7 +680,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("beginPainting").disabled = false;
         $("donePainting").disabled = true;
         setPaintStatus("Choose a value and brush size, then select Paint Value.");
-        setMassingStatus("Choose a value, then draw a free-form boundary around the area to simplify.");
+        setMassingStatus("Choose a value, then draw a free-form boundary around the area to simplify. Hold shift key to draw a straight line.");
         setMassSelectionStatus("Choose Select Mass, then tap or click one shape in the value map.");
         $("analyzeFeatures").disabled = phoneFeatureRestricted;
         $("selectFeature").disabled = detectedFeatures.length === 0;
@@ -696,6 +702,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         drawingMode = true;
         drawingPointer = null;
+        straightSegmentAnchorIndex = null;
         lassoPoints = [];
         lassoComplete = false;
         selectedPoint = measurement = null;
@@ -708,7 +715,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("drawArea").setAttribute("aria-pressed", "true");
         $("applyMassing").disabled = true;
         $("cancelMassing").disabled = false;
-        setMassingStatus("Draw around the area. Release to close the boundary.");
+        setMassingStatus("Draw around the area. Hold shift key for a straight line. Release to close the boundary.");
         redraw();
     }
 
@@ -716,6 +723,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if ((!drawingMode && !selectionRefineMode) || drawingPointer !== null) return;
         event.preventDefault();
         drawingPointer = event.pointerId;
+        straightSegmentAnchorIndex = null;
         drawingSurface.setPointerCapture(event.pointerId);
         const point = boundedImagePoint(event);
         lassoPoints = point ? [point] : [];
@@ -728,6 +736,22 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         const point = boundedImagePoint(event);
         if (!point) return;
+
+        if (drawingMode && event.shiftKey) {
+            if (straightSegmentAnchorIndex === null) {
+                straightSegmentAnchorIndex = lassoPoints.length - 1;
+                lassoPoints.push(point);
+            } else {
+                lassoPoints.length = straightSegmentAnchorIndex + 1;
+                lassoPoints.push(point);
+            }
+            redraw();
+            return;
+        }
+
+        if (drawingMode && straightSegmentAnchorIndex !== null) {
+            straightSegmentAnchorIndex = null;
+        }
         const previous = lassoPoints[lassoPoints.length - 1];
         const minimumSpacing = Math.max(1, 2 / viewport.getScale());
         if (Math.hypot(point.x - previous.x, point.y - previous.y) >= minimumSpacing) {
@@ -740,6 +764,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if ((!drawingMode && !selectionRefineMode) || event.pointerId !== drawingPointer) return;
         event.preventDefault();
         drawingPointer = null;
+        straightSegmentAnchorIndex = null;
         if (lassoPoints.length < 3) {
             lassoPoints = [];
             if (selectionRefineMode) setMassSelectionStatus("The boundary was too small. Draw a larger enclosed area.", true);
@@ -760,6 +785,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function handleDrawingCancel(event) {
         if ((drawingMode || selectionRefineMode) && event.pointerId === drawingPointer) {
             drawingPointer = null;
+            straightSegmentAnchorIndex = null;
             lassoPoints = [];
             lassoComplete = false;
             if (selectionRefineMode) setMassSelectionStatus("Refinement interrupted. Draw the boundary again.", true);
@@ -1247,6 +1273,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function cancelDrawing(message = "") {
         drawingMode = false;
         drawingPointer = null;
+        straightSegmentAnchorIndex = null;
         lassoPoints = [];
         lassoComplete = false;
         viewport.setInteractionEnabled(true);
