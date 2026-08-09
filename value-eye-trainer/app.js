@@ -12,7 +12,7 @@ const els={
   comparisonMode:$('#comparisonMode'),comparisonSettings:$('#comparisonSettings'),comparisonRange:$('#comparisonRange')
 };
 let history=JSON.parse(localStorage.getItem('valueEyeHistory')||'[]');
-let mode='identification',round=history.length+1,question=0,points=0,results=[],current,answered=false;
+let mode='comparison',round=history.length+1,question=0,points=0,results=[],current,answered=false;
 
 // CIELAB (D65) is the single source of truth for color, Peek, and value scales.
 const clamp=x=>Math.max(0,Math.min(1,x));

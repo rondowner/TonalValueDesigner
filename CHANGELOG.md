@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0 - 2026-08-08
+
+- Replaced the About dialog wording with the supplied `AboutTextWording.docx` content.
+- Expanded About to describe the complete six-part workflow, both Value Eye Training games, scoring behavior, and the proprietary notice.
+- Made Value Comparison the default Value Eye Trainer game in both embedded and standalone use.
+- Updated the Eye Trainer service-worker cache so deployed browsers receive the new default reliably.
+
 ## 1.13.3 - 2026-08-05
 
 - Reduced peak AI memory by running the two models sequentially and disposing each live pipeline after its masks have been converted into Tonal Value Designer features.
