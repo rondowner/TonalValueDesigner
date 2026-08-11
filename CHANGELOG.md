@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.9.6 - 2026-08-11
+
+- Corrected **greyscale** to **grayscale** in About section 6.
+- Corrected **before guess** to **before guessing** in About section 6.
+- Changed **assuring your painting** to **ensuring your painting** in About section 5.
+- Left Value Eye Trainer at v1.0 because its implementation did not change.
+
 ## 2.9.5 - 2026-08-11
 
 - Added the copyright symbol after **TonalValueDesigner** in the main header.

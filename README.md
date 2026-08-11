@@ -1,4 +1,4 @@
-# TonalValueDesigner 2.9.5
+# TonalValueDesigner 2.9.6
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -174,7 +174,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.9.5 was built on 2026-08-11.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.9.6 was built on 2026-08-11.
 
 TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.0.
 

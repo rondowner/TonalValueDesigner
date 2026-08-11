@@ -1,8 +1,8 @@
 "use strict";
 
-import TonalValueDesignerValueMap from "../js/valueMap.js?v=2.9.5";
-import TonalValueDesignerBrowserPlatform from "../js/browserPlatform.js?v=2.9.5";
-import TVD_REAL_IMAGE_BASELINE from "./real-image-baseline.js?v=2.9.5";
+import TonalValueDesignerValueMap from "../js/valueMap.js?v=2.9.6";
+import TonalValueDesignerBrowserPlatform from "../js/browserPlatform.js?v=2.9.6";
+import TVD_REAL_IMAGE_BASELINE from "./real-image-baseline.js?v=2.9.6";
 
 const output = document.getElementById("results");
 const summary = document.getElementById("summary");

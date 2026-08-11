@@ -1,14 +1,14 @@
 "use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.9.5";
-import CoreEngine from "./coreEngine.js?v=2.9.5";
-import TonalValueDesignerViewport from "./viewport.js?v=2.9.5";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.9.5";
-import BrowserPlatform from "./browserPlatform.js?v=2.9.5";
-import createEditHistory from "./editHistory.js?v=2.9.5";
-import createDocumentState from "./documentState.js?v=2.9.5";
-import createInteractionState from "./interactionState.js?v=2.9.5";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.9.5";
+import TonalValueDesignerVersion from "./version.js?v=2.9.6";
+import CoreEngine from "./coreEngine.js?v=2.9.6";
+import TonalValueDesignerViewport from "./viewport.js?v=2.9.6";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.9.6";
+import BrowserPlatform from "./browserPlatform.js?v=2.9.6";
+import createEditHistory from "./editHistory.js?v=2.9.6";
+import createDocumentState from "./documentState.js?v=2.9.6";
+import createInteractionState from "./interactionState.js?v=2.9.6";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.9.6";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
