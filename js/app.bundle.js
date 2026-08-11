@@ -4,7 +4,7 @@
 
 /* ===== version.js ===== */
 "use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.9.1",buildDate:"2026-08-09"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.9.5",buildDate:"2026-08-11"});
 
 /* ===== color.js ===== */
 "use strict";
@@ -2288,7 +2288,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const release = TonalValueDesignerVersion;
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
-    $("buildDate").textContent = `Built ${release.buildDate}`;
+    $("buildDate").textContent = `built ${release.buildDate}`;
 
     const phoneFeatureRestricted = BrowserPlatform.isPhone();
     $("featurePhoneNotice").hidden = !phoneFeatureRestricted;
@@ -2386,6 +2386,7 @@ document.addEventListener("DOMContentLoaded", () => {
         input.focus();
     }
     setupTabs();
+    setupLearningPanels();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
     drawingSurface.addEventListener("pointerdown", handleDrawingStart);
@@ -2499,6 +2500,41 @@ document.addEventListener("DOMContentLoaded", () => {
                     activate(buttons[nextIndex], true);
                 }
             });
+        });
+    }
+
+    function setupLearningPanels() {
+        const definitions = [
+            {
+                toggleId: "toggleValueStudyHelp",
+                panelId: "valueStudyLearning",
+                closeId: "closeValueStudyHelp",
+                closedLabel: "Learn more about value studies",
+                openLabel: "Hide value studies explanation"
+            },
+            {
+                toggleId: "toggleMassingHelp",
+                panelId: "valueMassingLearning",
+                closeId: "closeMassingHelp",
+                closedLabel: "Learn about value massing",
+                openLabel: "Hide value massing explanation"
+            }
+        ];
+
+        definitions.forEach(definition => {
+            const toggle = $(definition.toggleId);
+            const close = $(definition.closeId);
+            const panel = $(definition.panelId);
+
+            function setOpen(open, returnFocus = false) {
+                panel.hidden = !open;
+                toggle.setAttribute("aria-expanded", String(open));
+                toggle.textContent = open ? definition.openLabel : definition.closedLabel;
+                if (returnFocus) toggle.focus();
+            }
+
+            toggle.addEventListener("click", () => setOpen(panel.hidden));
+            close.addEventListener("click", () => setOpen(false, true));
         });
     }
 

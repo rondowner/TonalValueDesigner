@@ -1,11 +1,11 @@
 "use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.9.1";
-import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.1";
-import TonalValueDesignerMassing from "./massing.js?v=2.9.1";
-import TonalValueDesignerMassSelection from "./massSelection.js?v=2.9.1";
-import TonalValueDesignerValueBrush from "./valueBrush.js?v=2.9.1";
-import TonalValueDesignerMeasurement from "./measurement.js?v=2.9.1";
+import TonalValueDesignerColor from "./color.js?v=2.9.5";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.5";
+import TonalValueDesignerMassing from "./massing.js?v=2.9.5";
+import TonalValueDesignerMassSelection from "./massSelection.js?v=2.9.5";
+import TonalValueDesignerValueBrush from "./valueBrush.js?v=2.9.5";
+import TonalValueDesignerMeasurement from "./measurement.js?v=2.9.5";
 
 /*
  * Stable boundary between the application controller and TonalValueDesigner's

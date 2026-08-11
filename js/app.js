@@ -1,14 +1,14 @@
 "use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.9.1";
-import CoreEngine from "./coreEngine.js?v=2.9.1";
-import TonalValueDesignerViewport from "./viewport.js?v=2.9.1";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.9.1";
-import BrowserPlatform from "./browserPlatform.js?v=2.9.1";
-import createEditHistory from "./editHistory.js?v=2.9.1";
-import createDocumentState from "./documentState.js?v=2.9.1";
-import createInteractionState from "./interactionState.js?v=2.9.1";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.9.1";
+import TonalValueDesignerVersion from "./version.js?v=2.9.5";
+import CoreEngine from "./coreEngine.js?v=2.9.5";
+import TonalValueDesignerViewport from "./viewport.js?v=2.9.5";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.9.5";
+import BrowserPlatform from "./browserPlatform.js?v=2.9.5";
+import createEditHistory from "./editHistory.js?v=2.9.5";
+import createDocumentState from "./documentState.js?v=2.9.5";
+import createInteractionState from "./interactionState.js?v=2.9.5";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.9.5";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const release = TonalValueDesignerVersion;
     $("appVersion").textContent = `v${release.version}`;
     $("footerVersion").textContent = `v${release.version}`;
-    $("buildDate").textContent = `Built ${release.buildDate}`;
+    $("buildDate").textContent = `built ${release.buildDate}`;
 
     const phoneFeatureRestricted = BrowserPlatform.isPhone();
     $("featurePhoneNotice").hidden = !phoneFeatureRestricted;
@@ -120,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
         input.focus();
     }
     setupTabs();
+    setupLearningPanels();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
     drawingSurface.addEventListener("pointerdown", handleDrawingStart);
@@ -233,6 +234,41 @@ document.addEventListener("DOMContentLoaded", () => {
                     activate(buttons[nextIndex], true);
                 }
             });
+        });
+    }
+
+    function setupLearningPanels() {
+        const definitions = [
+            {
+                toggleId: "toggleValueStudyHelp",
+                panelId: "valueStudyLearning",
+                closeId: "closeValueStudyHelp",
+                closedLabel: "Learn more about value studies",
+                openLabel: "Hide value studies explanation"
+            },
+            {
+                toggleId: "toggleMassingHelp",
+                panelId: "valueMassingLearning",
+                closeId: "closeMassingHelp",
+                closedLabel: "Learn about value massing",
+                openLabel: "Hide value massing explanation"
+            }
+        ];
+
+        definitions.forEach(definition => {
+            const toggle = $(definition.toggleId);
+            const close = $(definition.closeId);
+            const panel = $(definition.panelId);
+
+            function setOpen(open, returnFocus = false) {
+                panel.hidden = !open;
+                toggle.setAttribute("aria-expanded", String(open));
+                toggle.textContent = open ? definition.openLabel : definition.closedLabel;
+                if (returnFocus) toggle.focus();
+            }
+
+            toggle.addEventListener("click", () => setOpen(panel.hidden));
+            close.addEventListener("click", () => setOpen(false, true));
         });
     }
 

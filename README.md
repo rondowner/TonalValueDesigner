@@ -1,4 +1,4 @@
-# TonalValueDesigner 2.9.1
+# TonalValueDesigner 2.9.5
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -14,6 +14,12 @@ The photograph chooser remains visible while the remaining controls are organize
 - **Create Value Map:** retained values, presets, map generation, comparison, and PNG export.
 - **Value Massing:** directed massing, value painting, and selection-based adjustment.
 - **Eye Trainer:** an embedded Painter's Value recognition exercise that also runs from its own URL.
+
+The **Value Sampling** tab begins with a compact instruction explaining where to select an image to measure its value.
+
+The **Create Value Map** tab begins with a compact purpose statement and **Learn more about value studies** control. Its persistent learning panel explains value studies, value sampling, value massing, simplification, design testing, and light logic.
+
+The **Value Massing** tab begins with a compact purpose statement and **Learn about value massing** control. It opens a persistent explanation using the original instructional wording. Both learning panels remain available until dismissed, follow the width of the resizable control column, and work with mouse, keyboard, stylus, and touch.
 
 ## Value Eye Trainer
 
@@ -168,7 +174,9 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The header and footer display the running version. Version 2.9.1 was built on 2026-08-09. Select **About Tonal Value Designer** beside the header version to read the product purpose, six-part painting workflow, Value Eye Training overview, and proprietary notice.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.9.5 was built on 2026-08-11.
+
+TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.0.
 
 ## Regression testing
 

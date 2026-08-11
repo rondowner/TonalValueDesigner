@@ -1,6 +1,6 @@
 "use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.9.1";
+import TonalValueDesignerColor from "./color.js?v=2.9.5";
 
 function validateImageData(imageData) {
     if (!imageData || !Number.isInteger(imageData.width) || !Number.isInteger(imageData.height) || !imageData.data) {

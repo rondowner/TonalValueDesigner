@@ -1,7 +1,7 @@
 "use strict";
 
-import TonalValueDesignerMassing from "./massing.js?v=2.9.1";
-import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.1";
+import TonalValueDesignerMassing from "./massing.js?v=2.9.5";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.9.5";
 
 const TonalValueDesignerValueBrush = (() => {
     const SIZE_FRACTIONS = Object.freeze({

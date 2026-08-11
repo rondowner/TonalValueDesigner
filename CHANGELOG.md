@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.9.5 - 2026-08-11
+
+- Added the copyright symbol after **TonalValueDesigner** in the main header.
+- Reorganized the right side of the header into three lines: release/build information, the copyright notice, and the About link.
+- Added **Copyright © 2026 Ron Downer. All Rights Reserved.** to the header.
+- Promoted Value Eye Trainer to v1.0 in both its embedded and standalone forms.
+- Updated the Eye Trainer cache name and asset versions so deployed clients receive v1.0.
+- Documented independent versioning: TVD advances when the main tool changes; Eye Trainer advances only when its own embedded or standalone implementation changes.
+
+## 2.9.4 - 2026-08-10
+
+- Reduced the size of tab-introduction text and instructional links.
+- Added compact introductory guidance to **Value Sampling** without an additional learning panel.
+- Added compact introductory guidance and a persistent **Learn more about value studies** panel to **Create Value Map**.
+- Preserved the supplied value-study wording and formatted its five key components as readable bullets.
+- Generalized the persistent learning-panel behavior for Value Map and Value Massing instruction.
+- Left Eye Trainer unchanged.
+
+## 2.9.3 - 2026-08-10
+
+- Replaced the Value Massing hover card with a discoverable, persistent in-tool learning panel.
+- Added a concise Value Massing purpose statement and **Learn about value massing** control at the top of the tab.
+- Preserved the original Value Massing instructional wording.
+- Made the explanation follow the resizable control-column width and reflow automatically.
+- Added explicit hide and close controls that work with mouse, keyboard, stylus, and touch.
+
+## 2.9.2 - 2026-08-10
+
+- Added a rich mouse-over help card to the **Value Massing** tab explaining the purpose and benefit of value massing.
+- Made the help card available when the tab receives keyboard focus, not only when a mouse hovers over it.
+- Added reusable tab-help hooks to all four tool tabs so explanatory text can be supplied for the remaining tabs later.
+
 ## 2.9.1 - 2026-08-09
 
 - Changed the header tagline to emphasize value maps, value studies, and value-based design decisions.

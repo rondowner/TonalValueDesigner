@@ -1,6 +1,8 @@
-# Tonal Value Designer — Value Eye Trainer v0.9
+# Tonal Value Designer — Value Eye Trainer v1.0
 
 A standalone, mobile-first progressive web app for practicing painter-value recognition. It has no dependencies, accounts, analytics, or network services.
+
+Value Eye Trainer uses its own release number. Beginning with v1.0, this number is updated whenever the embedded or standalone Eye Trainer changes; TonalValueDesigner-only changes do not advance it.
 
 ## Training modes
 

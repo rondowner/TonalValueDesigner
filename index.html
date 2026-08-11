@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <title>TonalValueDesigner</title>
-    <link rel="stylesheet" href="styles/styles.css?v=2.9.1">
+    <link rel="stylesheet" href="styles/styles.css?v=2.9.5">
     <style>
         body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
         .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
@@ -17,6 +17,21 @@
         .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.3rem;padding:.35rem;background:#e5e8ec;border:1px solid #c7ccd2;border-radius:.55rem;position:sticky;top:0;z-index:3}
         .tab-button{min-width:0;min-height:3.1rem;padding:.4rem .3rem;font-size:.83rem;line-height:1.15}
         .tab-button[aria-selected="true"]{color:#fff;background:#3569ad;border-color:#234d84;box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
+        .tab-introduction{border-left:4px solid #4678c8;background:#f6f9fd}
+        .tab-introduction>p{margin:0;color:#454b53;font-size:.82rem;line-height:1.35}
+        .tab-introduction>p+.learn-link{margin-top:.45rem}
+        .learn-link{min-height:auto;padding:0;color:#2e65a7;background:transparent;border:0;text-decoration:underline;text-underline-offset:.18rem;font-size:.82rem;font-weight:700}
+        .learn-link:hover{color:#194a84;background:transparent}
+        .learning-panel{width:100%;margin-top:.85rem;padding:1rem;color:#25282d;background:#fffdf7;border:1px solid #c6ad72;border-radius:.55rem;font-size:.92rem;line-height:1.5}
+        .learning-panel p{margin:0 0 .8rem}
+        .learning-panel p:last-of-type{margin-bottom:.9rem}
+        .learning-panel h3{margin:.2rem 0 .5rem;font-size:1rem}
+        .learning-list{margin:.25rem 0 .9rem;padding-left:1.2rem}
+        .learning-list li{margin:.45rem 0}
+        .learning-panel .close-learning{display:block;margin-left:auto;min-height:2.35rem}
+        .version-badge{gap:.12rem}
+        .version-badge .release-line{color:#fff;font-weight:700;font-size:1rem}
+        .version-badge .copyright-line{color:#fff}
         .tab-panel{display:flex;flex-direction:column;gap:1rem}
         .tab-panel[hidden]{display:none}
         .eye-trainer-workspace{min-width:0;min-height:0;height:100%;overflow:hidden;background:#171714;border:1px solid #131519;border-radius:.65rem;box-shadow:0 2px 7px rgba(0,0,0,.18)}
@@ -98,6 +113,8 @@
             .tabs{position:static}
         }
         @media(max-width:560px){
+            .app-header{flex-direction:column;align-items:stretch}
+            .version-badge{align-items:flex-start}
             .preset-row{grid-template-columns:repeat(2,minmax(0,1fr))}
             .value-map-actions button{flex:1}
             .mode-indicator{width:100%;margin-left:0;text-align:center}
@@ -107,8 +124,12 @@
 </head>
 <body>
     <header class="app-header">
-        <div><h1>TonalValueDesigner</h1><p class="subtitle">Create value maps, value studies, and make value-based design decisions.</p></div>
-        <div class="version-badge"><span id="appVersion">v2.9.1</span><span id="buildDate">Built 2026-08-09</span><button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button></div>
+        <div><h1>TonalValueDesigner ©</h1><p class="subtitle">Create value maps, value studies, and make value-based design decisions.</p></div>
+        <div class="version-badge">
+            <div class="release-line"><span id="appVersion">v2.9.5</span> <span id="buildDate">built 2026-08-11</span></div>
+            <div class="copyright-line"><strong>Copyright © 2026 Ron Downer. All Rights Reserved.</strong></div>
+            <button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button>
+        </div>
     </header>
 
     <main id="appLayout" class="app-layout">
@@ -128,6 +149,9 @@
             </nav>
 
             <section id="samplingTab" class="tab-panel" role="tabpanel" aria-labelledby="samplingTabButton">
+                <div class="panel-section tab-introduction">
+                    <p>Select anywhere on the loaded reference image or in-progress painting to find the value at that point.</p>
+                </div>
                 <div class="panel-section">
                     <h2>Tap or click the image</h2>
                     <div id="emptyResult" class="empty-result">Select a representative area to measure.</div>
@@ -166,6 +190,22 @@
             </section>
 
             <section id="mapTab" class="tab-panel" role="tabpanel" aria-labelledby="mapTabButton" hidden>
+                <div class="panel-section tab-introduction">
+                    <p>Display the image's values to create value maps and value studies.</p>
+                    <button id="toggleValueStudyHelp" class="learn-link" type="button" aria-expanded="false" aria-controls="valueStudyLearning">Learn more about value studies</button>
+                    <div id="valueStudyLearning" class="learning-panel" hidden>
+                        <p>A <strong>value study</strong> organizes the scene into a small number of intentional value groups—light, midtone, and dark—so you can understand the composition, form, and lighting without distraction. It’s a way to test and refine the visual “architecture” of your image.</p>
+                        <h3>📘 Key Components of a Value Study</h3>
+                        <ul class="learning-list">
+                            <li><strong>Value sampling</strong> — identifying the actual light/dark values in the reference (supported by the tool’s “Value Sampling” section).</li>
+                            <li><strong>Value massing</strong> — grouping scattered values into larger, readable shapes (explicitly described on the page).</li>
+                            <li><strong>Simplification</strong> — reducing the scene to a few big value areas rather than many small ones.</li>
+                            <li><strong>Design testing</strong> — checking whether the composition works <em>before</em> adding detail or color.</li>
+                            <li><strong>Light logic</strong> — ensuring the pattern of light and shadow feels coherent and believable.</li>
+                        </ul>
+                        <button id="closeValueStudyHelp" class="close-learning" type="button">Close explanation</button>
+                    </div>
+                </div>
                 <div class="panel-section">
                     <h2>Painter's Value Map</h2>
                     <label for="mapValues">Values to retain:</label>
@@ -182,6 +222,18 @@
             </section>
 
             <section id="massingTab" class="tab-panel" role="tabpanel" aria-labelledby="massingTabButton" hidden>
+                <div class="panel-section tab-introduction">
+                    <p>Organize scattered values into larger, readable shapes.</p>
+                    <button id="toggleMassingHelp" class="learn-link" type="button" aria-expanded="false" aria-controls="valueMassingLearning">Learn about value massing</button>
+                    <div id="valueMassingLearning" class="learning-panel" hidden>
+                        <p><strong>Simplified, connected value shapes give you control.</strong><br>That’s the core benefit of <em>value massing</em>: it forces you to organize light and dark into coherent, readable structures instead of scattering them as isolated patches. When your value shapes are unified, the image becomes stronger, clearer, and more believable.</p>
+                        <h3>🎨 Why value massing matters</h3>
+                        <p><strong>Value massing</strong> means grouping related lights and darks into larger, simplified shapes. Instead of dozens of tiny, fussy value changes, you create a few big, intentional masses.</p>
+                        <p>The benefit is simple:</p>
+                        <p><strong>Big, organized value shapes create visual power; small, chaotic ones create noise.</strong></p>
+                        <button id="closeMassingHelp" class="close-learning" type="button">Close explanation</button>
+                    </div>
+                </div>
                 <div class="panel-section">
                     <h2>Value Massing: By Area</h2>
                     <label for="massingValue">Normalize the drawn area to:</label>
@@ -257,7 +309,7 @@
             <div class="image-instructions"><p>Tap to sample. Drag to pan. Use the wheel or pinch to zoom.</p></div>
         </section>
         <section id="eyeTrainerWorkspace" class="eye-trainer-workspace" aria-label="Value Eye Trainer workspace" hidden>
-            <iframe class="eye-trainer-frame" src="value-eye-trainer/index.html?embedded=1&amp;v=0.11" title="Value Eye Trainer"></iframe>
+            <iframe class="eye-trainer-frame" src="value-eye-trainer/index.html?embedded=1&amp;v=1.0" title="Value Eye Trainer"></iframe>
         </section>
     </main>
 
@@ -302,7 +354,7 @@
         </div>
     </dialog>
 
-    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v2.9.1</span> — approximate, not a certified Munsell reading.</p></footer>
-    <script src="js/app.bundle.js?v=2.9.1-trainer1"></script>
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v2.9.5</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/app.bundle.js?v=2.9.5-header1"></script>
 </body>
 </html>
