@@ -1,8 +1,8 @@
-"use strict";
+﻿"use strict";
 
-import TonalValueDesignerValueMap from "../js/valueMap.js?v=2.9.6";
-import TonalValueDesignerBrowserPlatform from "../js/browserPlatform.js?v=2.9.6";
-import TVD_REAL_IMAGE_BASELINE from "./real-image-baseline.js?v=2.9.6";
+import TonalValueDesignerValueMap from "../js/valueMap.js?v=2.10.1";
+import TonalValueDesignerBrowserPlatform from "../js/browserPlatform.js?v=2.10.1";
+import TVD_REAL_IMAGE_BASELINE from "./real-image-baseline.js?v=2.10.1";
 
 const output = document.getElementById("results");
 const summary = document.getElementById("summary");
@@ -72,7 +72,7 @@ async function run() {
         if (!passed) failures += 1;
         results.push({ actual, expected: fixture.expected, passed });
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${fixture.file}</td><td>${actual.width} × ${actual.height}</td><td>${passed ? "PASS" : fixture.expected ? "FAIL" : "BASELINE NEEDED"}</td><td><code>${actual.maps.map(map => map.hash).join(" / ")}</code></td>`;
+        row.innerHTML = `<td>${fixture.file}</td><td>${actual.width} Ã— ${actual.height}</td><td>${passed ? "PASS" : fixture.expected ? "FAIL" : "BASELINE NEEDED"}</td><td><code>${actual.maps.map(map => map.hash).join(" / ")}</code></td>`;
         row.className = passed ? "pass" : "fail";
         output.append(row);
     }

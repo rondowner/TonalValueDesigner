@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const TonalValueDesignerFeatureSegmentation = (() => {
     const LIBRARY_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm";

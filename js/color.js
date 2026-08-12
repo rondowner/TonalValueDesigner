@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 
 
@@ -22,23 +22,23 @@
 
 
 
-        sRGB, using 0–255 channel values
+        sRGB, using 0â€“255 channel values
 
-            ↓
+            â†“
 
         Linear RGB
 
-            ↓
+            â†“
 
         CIE XYZ, using a D65 white point
 
-            ↓
+            â†“
 
         CIELAB L*, a*, b*
 
 
 
-    It also converts CIELAB L* into an approximate 1–10
+    It also converts CIELAB L* into an approximate 1â€“10
 
     painter's value.
 
@@ -200,11 +200,11 @@ const TonalValueDesignerColor = (() => {
 
         converted correctly to XYZ merely by multiplying the
 
-        original 0–255 values by a matrix.
+        original 0â€“255 values by a matrix.
 
 
 
-        We first normalize each channel to 0–1, then remove the
+        We first normalize each channel to 0â€“1, then remove the
 
         sRGB transfer curve.
 
@@ -216,7 +216,7 @@ const TonalValueDesignerColor = (() => {
 
     /**
 
-     * Convert one sRGB channel from 0–255 into linear RGB 0–1.
+     * Convert one sRGB channel from 0â€“255 into linear RGB 0â€“1.
 
      *
 
@@ -302,7 +302,7 @@ const TonalValueDesignerColor = (() => {
 
 
 
-        XYZ values are returned on the conventional 0–100 scale.
+        XYZ values are returned on the conventional 0â€“100 scale.
 
     */
 
@@ -410,11 +410,11 @@ const TonalValueDesignerColor = (() => {
 
 
 
-        a* describes roughly green ↔ red.
+        a* describes roughly green â†” red.
 
 
 
-        b* describes roughly blue ↔ yellow.
+        b* describes roughly blue â†” yellow.
 
     */
 
@@ -592,9 +592,9 @@ const TonalValueDesignerColor = (() => {
 
 
 
-            L* 0     → painter's value 1
+            L* 0     â†’ painter's value 1
 
-            L* 100   → painter's value 10
+            L* 100   â†’ painter's value 10
 
 
 
@@ -602,7 +602,7 @@ const TonalValueDesignerColor = (() => {
 
 
 
-            value = 1 + 9 × (L* / 100)
+            value = 1 + 9 Ã— (L* / 100)
 
 
 
@@ -610,21 +610,21 @@ const TonalValueDesignerColor = (() => {
 
 
 
-            L* 0     → 1.0
+            L* 0     â†’ 1.0
 
-            L* 25    → 3.3
+            L* 25    â†’ 3.3
 
-            L* 50    → 5.5
+            L* 50    â†’ 5.5
 
-            L* 75    → 7.8
+            L* 75    â†’ 7.8
 
-            L* 100   → 10.0
+            L* 100   â†’ 10.0
 
 
 
         This avoids treating black as Value 0, because the user
 
-        requested a 1–10 scale.
+        requested a 1â€“10 scale.
 
 
 

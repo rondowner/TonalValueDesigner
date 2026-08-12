@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 export default function TonalValueDesignerViewport({container,stage,canvas,onTap,onChange}){
  const MIN=.1,MAX=8,SLOP=7;let scale=1,x=0,y=0,start=null,moved=false,pinch=null,interactionEnabled=true,singlePointerEnabled=true,tapEnabled=true;const pointers=new Map();
  const size=()=>({w:container.clientWidth,h:container.clientHeight});

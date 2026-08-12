@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 function createEditHistory({ limit = 10, applyOperation }) {
     if (!Number.isInteger(limit) || limit < 1) throw new Error("Undo limit must be a positive integer.");

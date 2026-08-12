@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.10.1 - 2026-08-12
+
+- Fixed the production bundle so `js/squint.js` loads before `coreEngine.js`.
+- Restored application startup and JPEG/PNG image loading in the packaged and deployed build.
+- Added a regression check that verifies the Squint module exists and is defined before use in `app.bundle.js`.
+- Left Value Eye Trainer at v1.0 because its implementation did not change.
+
+## 2.10.0 - 2026-08-12
+
+- Added the conceptual **Value Massing: Squint** prototype.
+- Added Squint and Protect Major Edges controls using painter-oriented terminology.
+- Added non-destructive Preview and Reset actions plus Apply and Undo Last.
+- Added deterministic, local edge-aware smoothing that resists mixing across strong full-color boundaries before assigning retained Painter's Values.
+- Integrated applied Squint results into the shared ten-operation massing undo history.
+- Added a host-neutral `js/squint.js` processing module behind the core-engine boundary for later Rust/WebAssembly or Tauri migration.
+- Added deterministic regression coverage for Squint output and boundary preservation.
+- Left Value Eye Trainer at v1.0 because its implementation did not change.
+
 ## 2.9.6 - 2026-08-11
 
 - Corrected **greyscale** to **grayscale** in About section 6.

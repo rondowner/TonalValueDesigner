@@ -14,6 +14,7 @@ import createDocumentState from "../js/documentState.js";
 import createInteractionState from "../js/interactionState.js";
 import createCanvasRenderer from "../js/canvasRenderer.js";
 import TonalValueDesignerMeasurement from "../js/measurement.js";
+import createSquintEngine from "../js/squint.js";
 import { readFile } from "node:fs/promises";
 
 globalThis.ImageData = class ImageData {
@@ -76,6 +77,12 @@ test("Core engine exposes the stable controller contract", () => {
     const throughFacade = TonalValueDesignerCoreEngine.generateValueMap(source, [2, 5, 8]);
     const direct = TonalValueDesignerValueMap.generate(source, [2, 5, 8]);
     assert.deepEqual(Array.from(throughFacade.data), Array.from(direct.data));
+});
+
+test("Production bundle includes every core engine dependency", async () => {
+    const bundle = await readFile(new URL("../js/app.bundle.js", import.meta.url), "utf8");
+    assert.ok(bundle.includes("/* ===== squint.js ===== */"));
+    assert.ok(bundle.indexOf("function createSquintEngine") < bundle.indexOf("const SquintEngine = createSquintEngine"));
 });
 
 test("Browser host exposes the stable platform contract", () => {
@@ -258,6 +265,18 @@ test("Synthetic value-map output remains byte-for-byte stable", () => {
     ]);
     const result = TonalValueDesignerValueMap.generate(source, [2, 5, 8]);
     assert.equal(hash(result.data), "3219279a");
+});
+
+test("Squint preserves a strong boundary while simplifying neighborhoods", () => {
+    const source = image(8, 4, (x, y) => x < 4
+        ? [35 + ((x + y) % 2) * 18, 70, 120, 255]
+        : [225, 210 - ((x + y) % 2) * 18, 165, 255]);
+    const engine = createSquintEngine({ generateValueMap: TonalValueDesignerValueMap.generate });
+    const result = engine.simplify(source, [2, 5, 8], { amount: 3, edgeProtection: 5 });
+    assert.equal(result.width, source.width);
+    assert.equal(result.height, source.height);
+    assert.notEqual(result.data[(1 * 8 + 3) * 4], result.data[(1 * 8 + 4) * 4]);
+    assert.equal(hash(result.data), "a4080a45");
 });
 
 test("Polygon value massing remains stable", () => {

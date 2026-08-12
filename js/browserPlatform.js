@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 /* Browser-host services. A PWA or Tauri host can replace this contract. */
 const BrowserPlatform = Object.freeze({

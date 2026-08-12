@@ -4,7 +4,7 @@
 
 /* ===== version.js ===== */
 "use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.9.6",buildDate:"2026-08-11"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.10.1",buildDate:"2026-08-12"});
 
 /* ===== color.js ===== */
 "use strict";
@@ -31,23 +31,23 @@ const TonalValueDesignerVersion=Object.freeze({version:"2.9.6",buildDate:"2026-0
 
 
 
-        sRGB, using 0–255 channel values
+        sRGB, using 0â€“255 channel values
 
-            ↓
+            â†“
 
         Linear RGB
 
-            ↓
+            â†“
 
         CIE XYZ, using a D65 white point
 
-            ↓
+            â†“
 
         CIELAB L*, a*, b*
 
 
 
-    It also converts CIELAB L* into an approximate 1–10
+    It also converts CIELAB L* into an approximate 1â€“10
 
     painter's value.
 
@@ -209,11 +209,11 @@ const TonalValueDesignerColor = (() => {
 
         converted correctly to XYZ merely by multiplying the
 
-        original 0–255 values by a matrix.
+        original 0â€“255 values by a matrix.
 
 
 
-        We first normalize each channel to 0–1, then remove the
+        We first normalize each channel to 0â€“1, then remove the
 
         sRGB transfer curve.
 
@@ -225,7 +225,7 @@ const TonalValueDesignerColor = (() => {
 
     /**
 
-     * Convert one sRGB channel from 0–255 into linear RGB 0–1.
+     * Convert one sRGB channel from 0â€“255 into linear RGB 0â€“1.
 
      *
 
@@ -311,7 +311,7 @@ const TonalValueDesignerColor = (() => {
 
 
 
-        XYZ values are returned on the conventional 0–100 scale.
+        XYZ values are returned on the conventional 0â€“100 scale.
 
     */
 
@@ -419,11 +419,11 @@ const TonalValueDesignerColor = (() => {
 
 
 
-        a* describes roughly green ↔ red.
+        a* describes roughly green â†” red.
 
 
 
-        b* describes roughly blue ↔ yellow.
+        b* describes roughly blue â†” yellow.
 
     */
 
@@ -601,9 +601,9 @@ const TonalValueDesignerColor = (() => {
 
 
 
-            L* 0     → painter's value 1
+            L* 0     â†’ painter's value 1
 
-            L* 100   → painter's value 10
+            L* 100   â†’ painter's value 10
 
 
 
@@ -611,7 +611,7 @@ const TonalValueDesignerColor = (() => {
 
 
 
-            value = 1 + 9 × (L* / 100)
+            value = 1 + 9 Ã— (L* / 100)
 
 
 
@@ -619,21 +619,21 @@ const TonalValueDesignerColor = (() => {
 
 
 
-            L* 0     → 1.0
+            L* 0     â†’ 1.0
 
-            L* 25    → 3.3
+            L* 25    â†’ 3.3
 
-            L* 50    → 5.5
+            L* 50    â†’ 5.5
 
-            L* 75    → 7.8
+            L* 75    â†’ 7.8
 
-            L* 100   → 10.0
+            L* 100   â†’ 10.0
 
 
 
         This avoids treating black as Value 0, because the user
 
-        requested a 1–10 scale.
+        requested a 1â€“10 scale.
 
 
 
@@ -1518,6 +1518,76 @@ function measureValue(imageData, centerX, centerY, requestedSize) {
 
 const TonalValueDesignerMeasurement = Object.freeze({ averagePixels, measureValue });
 
+/* ===== squint.js ===== */
+"use strict";
+
+/*
+ * Experimental edge-aware simplification for painter-oriented "squinting".
+ * The algorithm smooths within similar neighborhoods while resisting color
+ * boundaries, then delegates final discrete-value assignment to valueMap.js.
+ */
+function createSquintEngine({ generateValueMap }) {
+    if (typeof generateValueMap !== "function") {
+        throw new Error("Squint requires a value-map generator.");
+    }
+
+    function simplify(sourceImageData, retainedValues, options = {}) {
+        if (!sourceImageData?.data || !sourceImageData.width || !sourceImageData.height) {
+            throw new Error("Squint requires valid source image data.");
+        }
+        const amount = Math.max(1, Math.min(5, Math.round(Number(options.amount) || 3)));
+        const edgeProtection = Math.max(1, Math.min(5, Math.round(Number(options.edgeProtection) || 4)));
+        const threshold = 132 - edgeProtection * 22;
+        const { width, height } = sourceImageData;
+        const guidance = sourceImageData.data;
+        let current = new Uint8ClampedArray(guidance);
+
+        for (let pass = 0; pass < amount; pass += 1) {
+            const next = new Uint8ClampedArray(current.length);
+            for (let y = 0; y < height; y += 1) {
+                for (let x = 0; x < width; x += 1) {
+                    const center = (y * width + x) * 4;
+                    let red = current[center] * 2;
+                    let green = current[center + 1] * 2;
+                    let blue = current[center + 2] * 2;
+                    let weight = 2;
+
+                    for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+                        const neighborY = y + offsetY;
+                        if (neighborY < 0 || neighborY >= height) continue;
+                        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+                            if (offsetX === 0 && offsetY === 0) continue;
+                            const neighborX = x + offsetX;
+                            if (neighborX < 0 || neighborX >= width) continue;
+                            const neighbor = (neighborY * width + neighborX) * 4;
+                            const difference = (
+                                Math.abs(guidance[center] - guidance[neighbor]) +
+                                Math.abs(guidance[center + 1] - guidance[neighbor + 1]) +
+                                Math.abs(guidance[center + 2] - guidance[neighbor + 2])
+                            ) / 3;
+                            if (difference > threshold) continue;
+                            red += current[neighbor];
+                            green += current[neighbor + 1];
+                            blue += current[neighbor + 2];
+                            weight += 1;
+                        }
+                    }
+                    next[center] = Math.round(red / weight);
+                    next[center + 1] = Math.round(green / weight);
+                    next[center + 2] = Math.round(blue / weight);
+                    next[center + 3] = guidance[center + 3];
+                }
+            }
+            current = next;
+        }
+
+        const softened = new ImageData(current, width, height);
+        return generateValueMap(softened, retainedValues);
+    }
+
+    return Object.freeze({ contractVersion: 1, simplify });
+}
+
 /* ===== coreEngine.js ===== */
 "use strict";
 
@@ -1526,6 +1596,9 @@ const TonalValueDesignerMeasurement = Object.freeze({ averagePixels, measureValu
 
 
 
+
+
+const SquintEngine = createSquintEngine({ generateValueMap: TonalValueDesignerValueMap.generate });
 
 /*
  * Stable boundary between the application controller and TonalValueDesigner's
@@ -1549,6 +1622,7 @@ const CoreEngine = Object.freeze({
     generateValueMap: TonalValueDesignerValueMap.generate,
     grayForPainterValue: TonalValueDesignerValueMap.grayForPainterValue,
     makeValueLegend: TonalValueDesignerValueMap.makeLegend,
+    squintValueMap: SquintEngine.simplify,
 
     cloneImageData: TonalValueDesignerMassing.cloneImageData,
     applyPolygon: TonalValueDesignerMassing.applyPolygon,
@@ -2310,6 +2384,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const documentState = createDocumentState();
     const interactionState = createInteractionState();
     const editHistory = createEditHistory({ limit: 10, applyOperation: applyMassingOperation });
+    let squintPreviewData = null;
 
     const viewport = TonalValueDesignerViewport({
         container: $("canvasContainer"),
@@ -2359,6 +2434,12 @@ document.addEventListener("DOMContentLoaded", () => {
     $("undoMassing").onclick = undoMassing;
     $("undoPaint").onclick = undoMassing;
     $("undoSelection").onclick = undoMassing;
+    $("previewSquint").onclick = previewSquint;
+    $("applySquint").onclick = applySquint;
+    $("resetSquint").onclick = () => resetSquint("Squint preview reset.");
+    $("undoSquint").onclick = undoMassing;
+    $("squintAmount").oninput = updateSquintLabels;
+    $("edgeProtection").oninput = updateSquintLabels;
     $("selectMass").onclick = beginMassSelection;
     $("applyMassValue").onclick = applySelectedMassValue;
     $("addSelectionArea").onclick = () => beginSelectionRefinement("add");
@@ -2387,6 +2468,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setupTabs();
     setupLearningPanels();
+    updateSquintLabels();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
     drawingSurface.addEventListener("pointerdown", handleDrawingStart);
@@ -2427,7 +2509,7 @@ document.addEventListener("DOMContentLoaded", () => {
             $("fileName").textContent = "Please choose an image file.";
             return;
         }
-        $("fileName").textContent = `Loading ${file.name}…`;
+        $("fileName").textContent = `Loading ${file.name}â€¦`;
         try {
             const image = await BrowserPlatform.loadImageFile(file);
             canvas.width = image.naturalWidth;
@@ -2442,7 +2524,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resetMassing();
             resetFeatureAnalysis();
             $("panImage").disabled = false;
-            $("fileName").textContent = `${file.name} — ${canvas.width} × ${canvas.height}`;
+            $("fileName").textContent = `${file.name} â€” ${canvas.width} Ã— ${canvas.height}`;
             $("imagePlaceholder").hidden = true;
             $("canvasContainer").hidden = false;
             $("viewportToolbar").hidden = false;
@@ -2459,7 +2541,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    function activeData() { return documentState.showingMap && documentState.mapData ? documentState.mapData : documentState.originalData; }
+    function activeData() {
+        if (!documentState.showingMap) return documentState.originalData;
+        return squintPreviewData || documentState.mapData || documentState.originalData;
+    }
 
     function setupTabs() {
         const buttons = [...document.querySelectorAll('[role="tab"]')];
@@ -2618,10 +2703,11 @@ document.addEventListener("DOMContentLoaded", () => {
         catch (error) { setMapStatus(error.message, true); return; }
 
         $("generateMap").disabled = true;
-        setMapStatus("Generating value map…");
+        setMapStatus("Generating value mapâ€¦");
         requestAnimationFrame(() => {
             try {
                 documentState.mapData = CoreEngine.generateValueMap(documentState.originalData, values);
+                squintPreviewData = null;
                 documentState.retainedValues = values;
                 documentState.showingMap = true;
                 documentState.selectedPoint = documentState.measurement = null;
@@ -2878,6 +2964,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateMode() { $("modeIndicator").textContent = interactionState.explicitPanMode ? "Pan Image" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
 
     function resetMassing() {
+        squintPreviewData = null;
         clearPaintState();
         clearMassSelectionState();
         interactionState.drawingMode = false;
@@ -2913,6 +3000,13 @@ document.addEventListener("DOMContentLoaded", () => {
         setMassSelectionStatus("Generate a value map to select individual masses.");
         $("analyzeFeatures").disabled = true;
         $("selectFeature").disabled = true;
+        $("squintAmount").disabled = true;
+        $("edgeProtection").disabled = true;
+        $("previewSquint").disabled = true;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        $("undoSquint").disabled = true;
+        setSquintStatus("Generate a value map to enable Squint.");
     }
 
     function prepareMassing(values) {
@@ -2954,12 +3048,19 @@ document.addEventListener("DOMContentLoaded", () => {
         $("analyzeFeatures").disabled = phoneFeatureRestricted;
         $("selectFeature").disabled = interactionState.detectedFeatures.length === 0;
         $("splitFeatureByValue").disabled = true;
+        $("squintAmount").disabled = false;
+        $("edgeProtection").disabled = false;
+        $("previewSquint").disabled = false;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        setSquintStatus("Adjust the controls, then select Preview.");
         setFeatureStatus(interactionState.detectedFeatures.length
             ? `${interactionState.detectedFeatures.length} broad features are available for this image.`
             : "Select Analyze Image to identify broad features on this device.");
     }
 
     function beginDrawing() {
+        if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (!documentState.mapData) return;
         exitExplicitPanMode();
         if (interactionState.paintMode) endPainting();
@@ -3094,6 +3195,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginMassSelection() {
+        if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (!documentState.mapData) return;
         exitExplicitPanMode();
         if (interactionState.paintMode) endPainting();
@@ -3273,6 +3375,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginPainting() {
+        if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (interactionState.paintMode) {
             endPainting("Painting finished.");
             return;
@@ -3464,6 +3567,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applyMassingOperation(imageData, operation) {
+        if (operation.type === "replace") {
+            return { changed: operation.imageData.data.length / 4, imageData: CoreEngine.cloneImageData(operation.imageData) };
+        }
         if (operation.type === "paint") {
             return CoreEngine.applyBrushStroke(imageData, operation.points, operation.value, operation.radius);
         }
@@ -3478,6 +3584,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function recordMassingOperation(operation) {
+        squintPreviewData = null;
         editHistory.record(operation);
     }
 
@@ -3485,6 +3592,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("undoMassing").disabled = !available;
         $("undoPaint").disabled = !available;
         $("undoSelection").disabled = !available;
+        $("undoSquint").disabled = !available;
     }
 
     function undoMassing() {
@@ -3498,6 +3606,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const result = editHistory.undo();
         documentState.mapData = result.imageData;
+        squintPreviewData = null;
         if (result.remaining === 0) {
             setUndoAvailable(false);
             setMassingStatus("Undo limit reached. There are no earlier massing changes available.");
@@ -3508,6 +3617,74 @@ document.addEventListener("DOMContentLoaded", () => {
             if (interactionState.paintMode) setPaintStatus("The last change was undone.");
         }
         redraw();
+    }
+
+    function updateSquintLabels() {
+        const amountLabels = ["", "Subtle", "Light", "Balanced", "Broad", "Strong"];
+        const edgeLabels = ["", "Loose", "Gentle", "Balanced", "Strong", "Very Strong"];
+        $("squintAmountOutput").textContent = amountLabels[Number($("squintAmount").value)];
+        $("edgeProtectionOutput").textContent = edgeLabels[Number($("edgeProtection").value)];
+        if (squintPreviewData) resetSquint("Controls changed. Select Preview to update the Squint result.");
+    }
+
+    function previewSquint() {
+        if (!documentState.originalData || !documentState.mapData || !documentState.retainedValues.length) {
+            setSquintStatus("Generate a value map first.", true);
+            return;
+        }
+        $("previewSquint").disabled = true;
+        $("applySquint").disabled = true;
+        setSquintStatus("Creating edge-aware Squint previewâ€¦");
+        requestAnimationFrame(() => {
+            try {
+                squintPreviewData = CoreEngine.squintValueMap(
+                    documentState.originalData,
+                    documentState.retainedValues,
+                    {
+                        amount: Number($("squintAmount").value),
+                        edgeProtection: Number($("edgeProtection").value)
+                    }
+                );
+                documentState.showingMap = true;
+                $("showOriginal").textContent = "Show Original";
+                $("applySquint").disabled = false;
+                $("resetSquint").disabled = false;
+                setSquintStatus("Preview shown. Apply it to make this the editable value map, or Reset to discard it.");
+                redraw();
+                updateMode();
+            } catch (error) {
+                squintPreviewData = null;
+                setSquintStatus(`Squint preview could not be created: ${error.message}`, true);
+            } finally {
+                $("previewSquint").disabled = false;
+            }
+        });
+    }
+
+    function applySquint() {
+        if (!squintPreviewData) return;
+        const operation = { type: "replace", imageData: CoreEngine.cloneImageData(squintPreviewData) };
+        editHistory.record(operation);
+        documentState.mapData = CoreEngine.cloneImageData(squintPreviewData);
+        squintPreviewData = null;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        setUndoAvailable(true);
+        setSquintStatus("Squint applied to the editable value map. Use Undo Last to restore the previous map.");
+        redraw();
+    }
+
+    function resetSquint(message = "") {
+        squintPreviewData = null;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        if (message) setSquintStatus(message);
+        redraw();
+    }
+
+    function setSquintStatus(message, error = false) {
+        $("squintStatus").textContent = message;
+        $("squintStatus").className = `massing-status${error ? " error" : ""}`;
     }
 
     function cancelDrawing(message = "") {
@@ -3554,7 +3731,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("rgbG").textContent = item.green;
         $("rgbB").textContent = item.blue;
         $("hexValue").textContent = CoreEngine.rgbToHex(item.red, item.green, item.blue);
-        $("sampleDimensions").textContent = `${item.width} × ${item.height}`;
+        $("sampleDimensions").textContent = `${item.width} Ã— ${item.height}`;
         $("sampleCoordinates").textContent = `x ${documentState.selectedPoint.x}, y ${documentState.selectedPoint.y}`;
         $("colorPreview").style.background = CoreEngine.rgbToCss(item.red, item.green, item.blue);
         compare();

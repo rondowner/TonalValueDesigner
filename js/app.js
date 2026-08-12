@@ -1,14 +1,14 @@
-"use strict";
+﻿"use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.9.6";
-import CoreEngine from "./coreEngine.js?v=2.9.6";
-import TonalValueDesignerViewport from "./viewport.js?v=2.9.6";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.9.6";
-import BrowserPlatform from "./browserPlatform.js?v=2.9.6";
-import createEditHistory from "./editHistory.js?v=2.9.6";
-import createDocumentState from "./documentState.js?v=2.9.6";
-import createInteractionState from "./interactionState.js?v=2.9.6";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.9.6";
+import TonalValueDesignerVersion from "./version.js?v=2.10.1";
+import CoreEngine from "./coreEngine.js?v=2.10.1";
+import TonalValueDesignerViewport from "./viewport.js?v=2.10.1";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.10.1";
+import BrowserPlatform from "./browserPlatform.js?v=2.10.1";
+import createEditHistory from "./editHistory.js?v=2.10.1";
+import createDocumentState from "./documentState.js?v=2.10.1";
+import createInteractionState from "./interactionState.js?v=2.10.1";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.10.1";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
@@ -44,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const documentState = createDocumentState();
     const interactionState = createInteractionState();
     const editHistory = createEditHistory({ limit: 10, applyOperation: applyMassingOperation });
+    let squintPreviewData = null;
 
     const viewport = TonalValueDesignerViewport({
         container: $("canvasContainer"),
@@ -93,6 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
     $("undoMassing").onclick = undoMassing;
     $("undoPaint").onclick = undoMassing;
     $("undoSelection").onclick = undoMassing;
+    $("previewSquint").onclick = previewSquint;
+    $("applySquint").onclick = applySquint;
+    $("resetSquint").onclick = () => resetSquint("Squint preview reset.");
+    $("undoSquint").onclick = undoMassing;
+    $("squintAmount").oninput = updateSquintLabels;
+    $("edgeProtection").oninput = updateSquintLabels;
     $("selectMass").onclick = beginMassSelection;
     $("applyMassValue").onclick = applySelectedMassValue;
     $("addSelectionArea").onclick = () => beginSelectionRefinement("add");
@@ -121,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setupTabs();
     setupLearningPanels();
+    updateSquintLabels();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
     drawingSurface.addEventListener("pointerdown", handleDrawingStart);
@@ -161,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
             $("fileName").textContent = "Please choose an image file.";
             return;
         }
-        $("fileName").textContent = `Loading ${file.name}…`;
+        $("fileName").textContent = `Loading ${file.name}â€¦`;
         try {
             const image = await BrowserPlatform.loadImageFile(file);
             canvas.width = image.naturalWidth;
@@ -176,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resetMassing();
             resetFeatureAnalysis();
             $("panImage").disabled = false;
-            $("fileName").textContent = `${file.name} — ${canvas.width} × ${canvas.height}`;
+            $("fileName").textContent = `${file.name} â€” ${canvas.width} Ã— ${canvas.height}`;
             $("imagePlaceholder").hidden = true;
             $("canvasContainer").hidden = false;
             $("viewportToolbar").hidden = false;
@@ -193,7 +201,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    function activeData() { return documentState.showingMap && documentState.mapData ? documentState.mapData : documentState.originalData; }
+    function activeData() {
+        if (!documentState.showingMap) return documentState.originalData;
+        return squintPreviewData || documentState.mapData || documentState.originalData;
+    }
 
     function setupTabs() {
         const buttons = [...document.querySelectorAll('[role="tab"]')];
@@ -352,10 +363,11 @@ document.addEventListener("DOMContentLoaded", () => {
         catch (error) { setMapStatus(error.message, true); return; }
 
         $("generateMap").disabled = true;
-        setMapStatus("Generating value map…");
+        setMapStatus("Generating value mapâ€¦");
         requestAnimationFrame(() => {
             try {
                 documentState.mapData = CoreEngine.generateValueMap(documentState.originalData, values);
+                squintPreviewData = null;
                 documentState.retainedValues = values;
                 documentState.showingMap = true;
                 documentState.selectedPoint = documentState.measurement = null;
@@ -612,6 +624,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateMode() { $("modeIndicator").textContent = interactionState.explicitPanMode ? "Pan Image" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
 
     function resetMassing() {
+        squintPreviewData = null;
         clearPaintState();
         clearMassSelectionState();
         interactionState.drawingMode = false;
@@ -647,6 +660,13 @@ document.addEventListener("DOMContentLoaded", () => {
         setMassSelectionStatus("Generate a value map to select individual masses.");
         $("analyzeFeatures").disabled = true;
         $("selectFeature").disabled = true;
+        $("squintAmount").disabled = true;
+        $("edgeProtection").disabled = true;
+        $("previewSquint").disabled = true;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        $("undoSquint").disabled = true;
+        setSquintStatus("Generate a value map to enable Squint.");
     }
 
     function prepareMassing(values) {
@@ -688,12 +708,19 @@ document.addEventListener("DOMContentLoaded", () => {
         $("analyzeFeatures").disabled = phoneFeatureRestricted;
         $("selectFeature").disabled = interactionState.detectedFeatures.length === 0;
         $("splitFeatureByValue").disabled = true;
+        $("squintAmount").disabled = false;
+        $("edgeProtection").disabled = false;
+        $("previewSquint").disabled = false;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        setSquintStatus("Adjust the controls, then select Preview.");
         setFeatureStatus(interactionState.detectedFeatures.length
             ? `${interactionState.detectedFeatures.length} broad features are available for this image.`
             : "Select Analyze Image to identify broad features on this device.");
     }
 
     function beginDrawing() {
+        if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (!documentState.mapData) return;
         exitExplicitPanMode();
         if (interactionState.paintMode) endPainting();
@@ -828,6 +855,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginMassSelection() {
+        if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (!documentState.mapData) return;
         exitExplicitPanMode();
         if (interactionState.paintMode) endPainting();
@@ -1007,6 +1035,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginPainting() {
+        if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (interactionState.paintMode) {
             endPainting("Painting finished.");
             return;
@@ -1198,6 +1227,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applyMassingOperation(imageData, operation) {
+        if (operation.type === "replace") {
+            return { changed: operation.imageData.data.length / 4, imageData: CoreEngine.cloneImageData(operation.imageData) };
+        }
         if (operation.type === "paint") {
             return CoreEngine.applyBrushStroke(imageData, operation.points, operation.value, operation.radius);
         }
@@ -1212,6 +1244,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function recordMassingOperation(operation) {
+        squintPreviewData = null;
         editHistory.record(operation);
     }
 
@@ -1219,6 +1252,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("undoMassing").disabled = !available;
         $("undoPaint").disabled = !available;
         $("undoSelection").disabled = !available;
+        $("undoSquint").disabled = !available;
     }
 
     function undoMassing() {
@@ -1232,6 +1266,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const result = editHistory.undo();
         documentState.mapData = result.imageData;
+        squintPreviewData = null;
         if (result.remaining === 0) {
             setUndoAvailable(false);
             setMassingStatus("Undo limit reached. There are no earlier massing changes available.");
@@ -1242,6 +1277,74 @@ document.addEventListener("DOMContentLoaded", () => {
             if (interactionState.paintMode) setPaintStatus("The last change was undone.");
         }
         redraw();
+    }
+
+    function updateSquintLabels() {
+        const amountLabels = ["", "Subtle", "Light", "Balanced", "Broad", "Strong"];
+        const edgeLabels = ["", "Loose", "Gentle", "Balanced", "Strong", "Very Strong"];
+        $("squintAmountOutput").textContent = amountLabels[Number($("squintAmount").value)];
+        $("edgeProtectionOutput").textContent = edgeLabels[Number($("edgeProtection").value)];
+        if (squintPreviewData) resetSquint("Controls changed. Select Preview to update the Squint result.");
+    }
+
+    function previewSquint() {
+        if (!documentState.originalData || !documentState.mapData || !documentState.retainedValues.length) {
+            setSquintStatus("Generate a value map first.", true);
+            return;
+        }
+        $("previewSquint").disabled = true;
+        $("applySquint").disabled = true;
+        setSquintStatus("Creating edge-aware Squint previewâ€¦");
+        requestAnimationFrame(() => {
+            try {
+                squintPreviewData = CoreEngine.squintValueMap(
+                    documentState.originalData,
+                    documentState.retainedValues,
+                    {
+                        amount: Number($("squintAmount").value),
+                        edgeProtection: Number($("edgeProtection").value)
+                    }
+                );
+                documentState.showingMap = true;
+                $("showOriginal").textContent = "Show Original";
+                $("applySquint").disabled = false;
+                $("resetSquint").disabled = false;
+                setSquintStatus("Preview shown. Apply it to make this the editable value map, or Reset to discard it.");
+                redraw();
+                updateMode();
+            } catch (error) {
+                squintPreviewData = null;
+                setSquintStatus(`Squint preview could not be created: ${error.message}`, true);
+            } finally {
+                $("previewSquint").disabled = false;
+            }
+        });
+    }
+
+    function applySquint() {
+        if (!squintPreviewData) return;
+        const operation = { type: "replace", imageData: CoreEngine.cloneImageData(squintPreviewData) };
+        editHistory.record(operation);
+        documentState.mapData = CoreEngine.cloneImageData(squintPreviewData);
+        squintPreviewData = null;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        setUndoAvailable(true);
+        setSquintStatus("Squint applied to the editable value map. Use Undo Last to restore the previous map.");
+        redraw();
+    }
+
+    function resetSquint(message = "") {
+        squintPreviewData = null;
+        $("applySquint").disabled = true;
+        $("resetSquint").disabled = true;
+        if (message) setSquintStatus(message);
+        redraw();
+    }
+
+    function setSquintStatus(message, error = false) {
+        $("squintStatus").textContent = message;
+        $("squintStatus").className = `massing-status${error ? " error" : ""}`;
     }
 
     function cancelDrawing(message = "") {
@@ -1288,7 +1391,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("rgbG").textContent = item.green;
         $("rgbB").textContent = item.blue;
         $("hexValue").textContent = CoreEngine.rgbToHex(item.red, item.green, item.blue);
-        $("sampleDimensions").textContent = `${item.width} × ${item.height}`;
+        $("sampleDimensions").textContent = `${item.width} Ã— ${item.height}`;
         $("sampleCoordinates").textContent = `x ${documentState.selectedPoint.x}, y ${documentState.selectedPoint.y}`;
         $("colorPreview").style.background = CoreEngine.rgbToCss(item.red, item.green, item.blue);
         compare();

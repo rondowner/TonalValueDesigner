@@ -1,6 +1,6 @@
-"use strict";
+﻿"use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.9.6";
+import TonalValueDesignerColor from "./color.js?v=2.10.1";
 
 const TonalValueDesignerValueMap = (() => {
     const linearChannels = new Float64Array(256);

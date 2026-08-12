@@ -7,7 +7,7 @@ const sourceDirectory = path.join(projectRoot, "js");
 const outputFile = path.join(sourceDirectory, "app.bundle.js");
 const sourceFiles = [
     "version.js", "color.js", "valueMap.js", "massing.js",
-    "massSelection.js", "valueBrush.js", "measurement.js", "coreEngine.js", "browserPlatform.js",
+    "massSelection.js", "valueBrush.js", "measurement.js", "squint.js", "coreEngine.js", "browserPlatform.js",
     "editHistory.js", "documentState.js", "interactionState.js", "canvasRenderer.js", "viewport.js", "featureSegmentation.js", "app.js"
 ];
 

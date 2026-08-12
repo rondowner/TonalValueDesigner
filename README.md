@@ -1,4 +1,4 @@
-# TonalValueDesigner 2.9.6
+# TonalValueDesigner 2.10.1
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -20,6 +20,12 @@ The **Value Sampling** tab begins with a compact instruction explaining where to
 The **Create Value Map** tab begins with a compact purpose statement and **Learn more about value studies** control. Its persistent learning panel explains value studies, value sampling, value massing, simplification, design testing, and light logic.
 
 The **Value Massing** tab begins with a compact purpose statement and **Learn about value massing** control. It opens a persistent explanation using the original instructional wording. Both learning panels remain available until dismissed, follow the width of the resizable control column, and work with mouse, keyboard, stylus, and touch.
+
+### Value Massing: Squint prototype
+
+Squint is an experimental global value-massing tool. It softens minor variations in the original full-color image while resisting strong color boundaries, then converts the result into the currently retained Painter's Values. **Squint** controls the degree of simplification; **Protect Major Edges** controls how strongly unlike neighboring colors resist mixing.
+
+Select **Preview** to inspect the result without changing the editable map. **Apply** commits the preview and adds it to the shared undo history. **Reset** discards only the preview. This deterministic prototype runs locally and uses no AI model.
 
 ## Value Eye Trainer
 
@@ -174,7 +180,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.9.6 was built on 2026-08-11.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.10.1 was built on 2026-08-12.
 
 TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.0.
 
