@@ -43,7 +43,11 @@ Use this checklist after the automated suites pass and before publishing an arch
 ## Value Eye Trainer
 
 - Confirm Value Comparison opens by default.
-- Complete at least one Comparison answer and one Identification answer.
+- Complete at least one Value Comparison answer, one Value Identification answer, one Color Difference answer, and one Correct the Color challenge.
+- In Color Difference, verify both swatches remain at the same displayed Painter's Value and that Redder, Yellower, Greener, and Bluer challenges appear over several rounds.
+- Hold the reveal control and verify it names the correct color direction.
+- In Correct the Color, verify two directions are initially valid. Choose either one, confirm only that component changes, then choose the remaining direction and confirm the swatches match.
+- Choose an incorrect correction and verify the swatch does not change and the exercise permits another attempt.
 - Verify Peek, score history, embedded mode, and the standalone URL.
 
 ## Responsive smoke tests

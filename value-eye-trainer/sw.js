@@ -1,5 +1,5 @@
-const CACHE='value-eye-trainer-v1.0';
-const FILES=['./','./index.html','./styles.css?v=1.0','./app.js?v=1.0','./manifest.webmanifest','./icon.svg'];
+const CACHE='value-eye-trainer-v1.3';
+const FILES=['./','./index.html','./styles.css?v=1.3','./app.js?v=1.3','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>event.waitUntil(
   caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())
 ));

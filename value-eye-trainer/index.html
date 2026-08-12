@@ -7,19 +7,21 @@
   <meta name="description" content="Train your eye to recognize painter values from 1 to 10.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=1.0">
+  <link rel="stylesheet" href="styles.css?v=1.3">
   <title>Value Eye Trainer</title>
 </head>
 <body>
   <main class="app">
     <header>
-      <div><p class="eyebrow">TONAL VALUE DESIGNER · v1.0</p><h1>Value Eye Trainer</h1></div>
+      <div><p class="eyebrow">TONAL VALUE DESIGNER · v1.3</p><h1>Value Eye Trainer (working prototype)</h1></div>
       <button id="historyButton" class="score-button" aria-label="Open score history"><span>BEST</span><strong id="headerBest">0</strong><small>/100</small></button>
     </header>
 
     <nav class="mode-switch" aria-label="Training mode">
-      <button id="identificationMode" type="button" aria-pressed="false">Value Identification</button>
       <button id="comparisonMode" type="button" aria-pressed="true">Value Comparison</button>
+      <button id="identificationMode" type="button" aria-pressed="false">Value Identification</button>
+      <button id="colorDifferenceMode" type="button" aria-pressed="false">Color Difference</button>
+      <button id="colorCorrectionMode" type="button" aria-pressed="false">Correct the Color</button>
     </nav>
 
     <div id="comparisonSettings" class="comparison-settings">
@@ -28,6 +30,9 @@
         <option value="1">1 value step</option><option value="2">2 value steps</option><option value="3">3 value steps</option><option value="4">4 value steps</option><option value="5" selected>5 value steps</option>
       </select>
     </div>
+
+    <p id="colorDifferenceNote" class="mode-note" hidden>Both swatches have the same Painter’s Value. Identify the color direction of the second swatch.</p>
+    <p id="colorCorrectionNote" class="mode-note" hidden>Make the second swatch match the first, one color correction at a time. Both swatches have the same Painter’s Value.</p>
 
     <section class="status" aria-label="Round progress">
       <span>Round <strong id="roundNumber">1</strong></span>
@@ -77,6 +82,6 @@
       <button id="clearHistory" class="reset-button">Reset history and best score</button>
     </dialog>
   </main>
-  <script src="app.js?v=1.0"></script>
+  <script src="app.js?v=1.3"></script>
 </body>
 </html>

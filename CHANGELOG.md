@@ -1,5 +1,32 @@
 # Changelog
 
+## Value Eye Trainer 1.3 - 2026-08-12
+
+- Changed the trainer header to **Value Eye Trainer (working prototype)**.
+- Moved **Value Comparison** to the first position, immediately left of **Value Identification**.
+- Kept Value Comparison as the default exercise.
+- Updated the Eye Trainer service-worker cache so deployed browsers receive v1.3.
+- Left TonalValueDesigner at v2.10.1 because the main application logic did not change.
+
+## Value Eye Trainer 1.2 - 2026-08-12
+
+- Added the conceptual **Correct the Color** training mode alongside Color Difference.
+- Added same-value target and working swatches that initially differ along two independent color directions.
+- Allowed either valid correction to be chosen first, then visibly animated only that component into agreement.
+- Continued each challenge until the artist identifies and corrects the remaining component and both swatches match.
+- Added 5-point scoring per successful correction, retry feedback, direction reveal, history labeling, and embedded support.
+- Updated the Eye Trainer service-worker cache so deployed browsers receive v1.2.
+- Left TonalValueDesigner at v2.10.1 because the main application logic did not change.
+
+## Value Eye Trainer 1.1 - 2026-08-12
+
+- Added the conceptual **Color Difference** training mode.
+- Added paired, same-value color swatches that ask whether the second swatch is redder, yellower, greener, or bluer.
+- Kept Painter's Value constant so the exercise isolates color direction from lightness.
+- Added answer-reveal guidance, scoring, score-history labels, embedded presentation, and standalone support for the new mode.
+- Updated the Eye Trainer service-worker cache so deployed browsers receive v1.1.
+- Left TonalValueDesigner at v2.10.1 because the main application logic did not change.
+
 ## 2.10.1 - 2026-08-12
 
 - Fixed the production bundle so `js/squint.js` loads before `coreEngine.js`.

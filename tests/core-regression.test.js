@@ -240,6 +240,32 @@ test("Eye Trainer comparison uses decimal direction and updated retry wording", 
     assert.equal(trainerSource.includes("secondGroup===firstGroup?'same'"), false);
 });
 
+test("Eye Trainer includes same-value Color Difference training", async () => {
+    const trainerSource = await readFile(new URL("../value-eye-trainer/app.js", import.meta.url), "utf8");
+    const trainerHtml = await readFile(new URL("../value-eye-trainer/index.html", import.meta.url), "utf8");
+    assert.ok(trainerHtml.includes('id="colorDifferenceMode"'));
+    assert.ok(trainerHtml.includes("TONAL VALUE DESIGNER · v1.3"));
+    assert.ok(trainerHtml.includes("Value Eye Trainer (working prototype)"));
+    assert.ok(trainerHtml.indexOf('id="comparisonMode"') < trainerHtml.indexOf('id="identificationMode"'));
+    assert.ok(trainerSource.includes("mode==='colorDifference'"));
+    assert.ok(trainerSource.includes("Math.abs(second.value-first.value)>.1"));
+    for (const direction of ["redder", "yellower", "greener", "bluer"]) {
+        assert.ok(trainerSource.includes(`relation:'${direction}'`));
+    }
+});
+
+test("Eye Trainer includes stepwise Correct the Color training", async () => {
+    const trainerSource = await readFile(new URL("../value-eye-trainer/app.js", import.meta.url), "utf8");
+    const trainerHtml = await readFile(new URL("../value-eye-trainer/index.html", import.meta.url), "utf8");
+    assert.ok(trainerHtml.includes('id="colorCorrectionMode"'));
+    assert.ok(trainerSource.includes("function makeColorCorrection()"));
+    assert.ok(trainerSource.includes("function correctionDirections(challenge)"));
+    assert.ok(trainerSource.includes("function answerColorCorrection(guess)"));
+    assert.ok(trainerSource.includes("current.currentA=current.target.a"));
+    assert.ok(trainerSource.includes("current.currentB=current.target.b"));
+    assert.ok(trainerSource.includes("current.earned+=5;points+=5"));
+});
+
 test("CIELAB reference colors and Painter's Value mapping", () => {
     assert.ok(Math.abs(TonalValueDesignerColor.rgbToLab(0, 0, 0).l) < 0.001);
     assert.ok(Math.abs(TonalValueDesignerColor.rgbToLab(255, 255, 255).l - 100) < 0.01);

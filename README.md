@@ -31,7 +31,7 @@ Select **Preview** to inspect the result without changing the editable map. **Ap
 
 Select the **Eye Trainer** tab to use the exercise inside TonalValueDesigner. The same shared application can be opened independently at `value-eye-trainer/index.html`. Score history is stored locally by the browser.
 
-The Eye Trainer provides two modes: **Value Identification** for estimating one swatch's value, and **Value Comparison** for deciding whether a second swatch is lighter, darker, or the same measured value as the first. **Value Comparison is the default mode.** Comparison range is configurable from 1 through 5 value steps. A correct directional answer earns 10 points for any measured difference, including 0.1; an otherwise incorrect answer earns 5 when the measured values are no more than 0.4 apart.
+The Eye Trainer provides four modes: **Value Identification** for estimating one swatch's value, **Value Comparison** for deciding whether a second swatch is lighter, darker, or the same measured value as the first, **Color Difference** for identifying whether a same-value second swatch is redder, yellower, greener, or bluer, and the conceptual **Correct the Color** prototype. Correct the Color asks the artist to make a second same-value swatch match a target through two stepwise color-direction corrections. Each correct selection changes only that component, visibly updates the swatch, and leaves any remaining correction for the next decision. **Value Comparison is the default mode.** Comparison range is configurable from 1 through 5 value steps. A correct value-direction answer earns 10 points for any measured difference, including 0.1; an otherwise incorrect answer earns 5 when the measured values are no more than 0.4 apart. Color Difference isolates hue direction from value and awards 10 points for the correct direction. Correct the Color awards 5 points for each of its two successful corrections.
 
 The embedded presentation uses a reduced color swatch, one row of ten answer buttons, and compact typography, spacing, feedback, comparison, and navigation controls. These compact-layout changes do not affect the standalone trainer.
 
@@ -182,7 +182,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.10.1 was built on 2026-08-12.
 
-TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.0.
+TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.3 and is labeled as a working prototype.
 
 ## Regression testing
 
