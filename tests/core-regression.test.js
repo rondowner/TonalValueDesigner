@@ -127,6 +127,7 @@ test("Document state starts clean and remains structurally stable", () => {
     assert.equal(state.originalData, null);
     assert.equal(state.mapData, null);
     assert.deepEqual(state.retainedValues, []);
+    assert.deepEqual(state.visibleValues, []);
     assert.equal(state.showingMap, false);
     assert.equal(state.sourceName, "value-map");
     state.sourceName = "study";
@@ -293,6 +294,41 @@ test("Synthetic value-map output remains byte-for-byte stable", () => {
     assert.equal(hash(result.data), "3219279a");
 });
 
+test("Generated maps preserve exact categorical Painter's Values", () => {
+    const retained = [1, 2, 4, 5, 6, 8, 9];
+    const dark = TonalValueDesignerValueMap.grayForPainterValue(4);
+    const light = TonalValueDesignerValueMap.grayForPainterValue(5);
+    const map = image(4, 1, x => x < 2 ? [dark, dark, dark, 255] : [light, light, light, 255]);
+    assert.equal(TonalValueDesignerValueMap.valueAt(map, 0, 0, retained), 4);
+    assert.equal(TonalValueDesignerValueMap.valueAt(map, 3, 0, retained), 5);
+    assert.equal(TonalValueDesignerCoreEngine.valueAt(map, 0, 0, retained), 4);
+});
+
+test("Value isolation masks hidden values without changing the map", () => {
+    const retained = [2, 4, 5, 8];
+    const gray4 = TonalValueDesignerValueMap.grayForPainterValue(4);
+    const gray5 = TonalValueDesignerValueMap.grayForPainterValue(5);
+    const gray8 = TonalValueDesignerValueMap.grayForPainterValue(8);
+    const map = image(3, 1, x => {
+        const gray = x === 0 ? gray4 : x === 1 ? gray5 : gray8;
+        return [gray, gray, gray, 255];
+    });
+    const original = Array.from(map.data);
+    const isolated = TonalValueDesignerCoreEngine.isolateValueMap(map, retained, [4, 5]);
+    assert.deepEqual(Array.from(isolated.data.slice(0, 8)), original.slice(0, 8));
+    assert.deepEqual(Array.from(isolated.data.slice(8, 12)), [190, 222, 242, 255]);
+    assert.deepEqual(Array.from(map.data), original);
+});
+
+test("Controller uses exact categories and interactive value isolation", async () => {
+    const appSource = await readFile(new URL("../js/app.js", import.meta.url), "utf8");
+    assert.ok(appSource.includes("CoreEngine.valueAt("));
+    assert.ok(appSource.includes("CoreEngine.isolateValueMap("));
+    assert.ok(appSource.includes('entry.setAttribute("aria-pressed"'));
+    assert.ok(appSource.includes("Hidden values appear light blue"));
+    assert.ok(appSource.includes("BrowserPlatform.savePng(documentState.mapData"));
+});
+
 test("Squint preserves a strong boundary while simplifying neighborhoods", () => {
     const source = image(8, 4, (x, y) => x < 4
         ? [35 + ((x + y) % 2) * 18, 70, 120, 255]
@@ -360,7 +396,7 @@ test("Feature splitting assigns pixels to retained Painter's Values", () => {
 let failed = 0;
 for (const { name, action } of tests) {
     try {
-        action();
+        await action();
         console.log(`PASS  ${name}`);
     } catch (error) {
         failed += 1;

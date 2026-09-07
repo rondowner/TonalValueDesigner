@@ -1,7 +1,7 @@
 ﻿"use strict";
 
-import TonalValueDesignerMassing from "./massing.js?v=2.10.1";
-import TonalValueDesignerValueMap from "./valueMap.js?v=2.10.1";
+import TonalValueDesignerMassing from "./massing.js?v=2.11.0";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.11.0";
 
 const TonalValueDesignerMassSelection = (() => {
     function identify(imageData, startX, startY) {

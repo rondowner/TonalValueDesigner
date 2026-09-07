@@ -1,14 +1,14 @@
 ﻿"use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.10.1";
-import CoreEngine from "./coreEngine.js?v=2.10.1";
-import TonalValueDesignerViewport from "./viewport.js?v=2.10.1";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.10.1";
-import BrowserPlatform from "./browserPlatform.js?v=2.10.1";
-import createEditHistory from "./editHistory.js?v=2.10.1";
-import createDocumentState from "./documentState.js?v=2.10.1";
-import createInteractionState from "./interactionState.js?v=2.10.1";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.10.1";
+import TonalValueDesignerVersion from "./version.js?v=2.11.0";
+import CoreEngine from "./coreEngine.js?v=2.11.0";
+import TonalValueDesignerViewport from "./viewport.js?v=2.11.0";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.11.0";
+import BrowserPlatform from "./browserPlatform.js?v=2.11.0";
+import createEditHistory from "./editHistory.js?v=2.11.0";
+import createDocumentState from "./documentState.js?v=2.11.0";
+import createInteractionState from "./interactionState.js?v=2.11.0";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.11.0";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
@@ -178,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
             documentState.originalData = context.getImageData(0, 0, canvas.width, canvas.height);
             documentState.mapData = null;
             documentState.retainedValues = [];
+            documentState.visibleValues = [];
             documentState.showingMap = false;
             documentState.selectedPoint = documentState.measurement = null;
             documentState.sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
@@ -204,6 +205,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function activeData() {
         if (!documentState.showingMap) return documentState.originalData;
         return squintPreviewData || documentState.mapData || documentState.originalData;
+    }
+
+    function displayedData() {
+        const data = activeData();
+        if (!documentState.showingMap || !documentState.mapData) return data;
+        return CoreEngine.isolateValueMap(
+            data,
+            documentState.retainedValues,
+            documentState.visibleValues
+        );
     }
 
     function setupTabs() {
@@ -342,7 +353,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     function redraw() {
         canvasRenderer.render({
-            baseData: activeData(),
+            baseData: displayedData(),
             selectionOverlayData: interactionState.selectedMass ? interactionState.selectionHighlightData : null,
             lasso: (interactionState.drawingMode || interactionState.selectionRefineMode) && interactionState.lassoPoints.length
                 ? { points: interactionState.lassoPoints, complete: interactionState.lassoComplete }
@@ -369,6 +380,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 documentState.mapData = CoreEngine.generateValueMap(documentState.originalData, values);
                 squintPreviewData = null;
                 documentState.retainedValues = values;
+                documentState.visibleValues = values.slice();
                 documentState.showingMap = true;
                 documentState.selectedPoint = documentState.measurement = null;
                 $("emptyResult").hidden = false;
@@ -419,16 +431,38 @@ document.addEventListener("DOMContentLoaded", () => {
         const legend = $("valueLegend");
         legend.textContent = "";
         CoreEngine.makeValueLegend(documentState.retainedValues).forEach(item => {
-            const entry = document.createElement("div");
+            const entry = document.createElement("button");
+            entry.type = "button";
             entry.className = "legend-item";
+            entry.setAttribute("aria-pressed", String(documentState.visibleValues.includes(item.value)));
+            entry.setAttribute("aria-label", `Toggle Painter's Value ${item.value.toFixed(1)}`);
             const swatch = document.createElement("span");
             swatch.className = "legend-swatch";
             swatch.style.background = `rgb(${item.gray},${item.gray},${item.gray})`;
             const label = document.createElement("span");
-            label.textContent = `Value ${item.value}`;
+            label.textContent = `Value ${item.value.toFixed(1)}`;
             entry.append(swatch, label);
+            entry.addEventListener("click", () => {
+                const visible = new Set(documentState.visibleValues);
+                if (visible.has(item.value)) visible.delete(item.value);
+                else visible.add(item.value);
+                documentState.visibleValues = documentState.retainedValues.filter(value => visible.has(value));
+                entry.setAttribute("aria-pressed", String(visible.has(item.value)));
+                documentState.selectedPoint = documentState.measurement = null;
+                $("emptyResult").hidden = false;
+                $("measurementResult").hidden = true;
+                redraw();
+                const selection = documentState.visibleValues.length
+                    ? documentState.visibleValues.map(value => value.toFixed(1)).join(", ")
+                    : "none";
+                setMapStatus(`Visible Painter's Values: ${selection}. Select a value label to show or hide it.`);
+            });
             legend.append(entry);
         });
+        const help = document.createElement("p");
+        help.className = "legend-help";
+        help.textContent = "Select value labels to show or hide those values. Hidden values appear light blue; the underlying map and saved PNG are unchanged.";
+        legend.append(help);
         legend.hidden = false;
     }
 
@@ -1376,6 +1410,14 @@ document.addEventListener("DOMContentLoaded", () => {
             documentState.selectedPoint.y,
             Number($("sampleSize").value)
         );
+        if (documentState.showingMap && documentState.mapData) {
+            documentState.measurement.value = CoreEngine.valueAt(
+                activeData(),
+                documentState.selectedPoint.x,
+                documentState.selectedPoint.y,
+                documentState.retainedValues
+            );
+        }
         displayMeasurement();
         redraw();
     }

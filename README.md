@@ -1,4 +1,4 @@
-# TonalValueDesigner 2.10.1
+# TonalValueDesigner 2.11.0
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -69,10 +69,12 @@ A short tap or click samples the image. Dragging navigates without changing the 
 
 1. Enter the exact Painter's Values to retain, such as `1, 3, 5, 7, 9`, or choose a preset. On a phone, use the comma button beside the field to separate custom values while retaining the numeric keypad.
 2. Select **Generate Map**. Each part of the photograph is assigned to the nearest retained value.
-3. Use **Show Original** and **Show Value Map** to compare them.
-4. Select **Save PNG** to download a clean, full-resolution map.
+3. Select one or more value labels in the legend to isolate those values. Selected values retain their assigned gray; hidden values appear pale blue.
+4. Select the labels again to restore them, or leave every label selected to see the complete map.
+5. Use **Show Original** and **Show Value Map** to compare them.
+6. Select **Save PNG** to download a clean, full-resolution map.
 
-The saved PNG does not contain the sampling crosshair or interface controls. The on-screen legend identifies every gray by its Painter's Value number.
+Sampling an active value map reports the exact assigned category (for example, `4.0` or `5.0`) rather than remeasuring an averaged grayscale color. The saved PNG does not contain the sampling crosshair, interface controls, or pale-blue isolation mask: it always contains the complete underlying value map. The on-screen legend identifies every gray by its Painter's Value number.
 
 The presets include **Notan** (Values 1 and 10) plus three-, five-, and seven-value studies. The three-value preset (`2, 5, 8`) is initially selected. On desktop, the controls and image workspace scroll independently so the reference remains in view while using controls farther down the page.
 
@@ -180,7 +182,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.10.1 was built on 2026-08-12.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.11.0 was built on 2026-09-07.
 
 TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.3 and is labeled as a working prototype.
 

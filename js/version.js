@@ -1,4 +1,4 @@
 ﻿"use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.10.1",buildDate:"2026-08-12"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.11.0",buildDate:"2026-09-07"});
 
 export default TonalValueDesignerVersion;

@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.10.1";
+import TonalValueDesignerColor from "./color.js?v=2.11.0";
 
 const TonalValueDesignerValueMap = (() => {
     const linearChannels = new Float64Array(256);
@@ -96,6 +96,50 @@ const TonalValueDesignerValueMap = (() => {
         return output;
     }
 
+    function valueAt(imageData, x, y, retainedValues) {
+        if (!imageData || !retainedValues?.length) return null;
+        const safeX = Math.max(0, Math.min(imageData.width - 1, Math.floor(x)));
+        const safeY = Math.max(0, Math.min(imageData.height - 1, Math.floor(y)));
+        const index = (safeY * imageData.width + safeX) * 4;
+        const gray = imageData.data[index];
+        return retainedValues.reduce((nearest, value) =>
+            Math.abs(grayForPainterValue(value) - gray) < Math.abs(grayForPainterValue(nearest) - gray)
+                ? value
+                : nearest
+        );
+    }
+
+    function isolate(imageData, retainedValues, visibleValues, maskColor = [190, 222, 242]) {
+        if (!imageData || !retainedValues?.length) return imageData;
+        const visible = new Set(visibleValues);
+        if (visible.size === retainedValues.length && retainedValues.every(value => visible.has(value))) {
+            return imageData;
+        }
+        const output = new ImageData(
+            new Uint8ClampedArray(imageData.data),
+            imageData.width,
+            imageData.height
+        );
+        const valueByGray = new Map(retainedValues.map(value => [grayForPainterValue(value), value]));
+        for (let index = 0; index < output.data.length; index += 4) {
+            const gray = output.data[index];
+            let value = valueByGray.get(gray);
+            if (value === undefined) {
+                value = retainedValues.reduce((nearest, candidate) =>
+                    Math.abs(grayForPainterValue(candidate) - gray) < Math.abs(grayForPainterValue(nearest) - gray)
+                        ? candidate
+                        : nearest
+                );
+            }
+            if (!visible.has(value)) {
+                output.data[index] = maskColor[0];
+                output.data[index + 1] = maskColor[1];
+                output.data[index + 2] = maskColor[2];
+            }
+        }
+        return output;
+    }
+
     function makeLegend(retainedValues) {
         return retainedValues
             .slice()
@@ -103,7 +147,7 @@ const TonalValueDesignerValueMap = (() => {
             .map(value => ({ value, gray: grayForPainterValue(value) }));
     }
 
-    return Object.freeze({ parseValues, generate, makeLegend, grayForPainterValue });
+    return Object.freeze({ parseValues, generate, valueAt, isolate, makeLegend, grayForPainterValue });
 })();
 
 export default TonalValueDesignerValueMap;

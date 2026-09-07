@@ -8,6 +8,7 @@ function createDocumentState() {
         originalData: null,
         mapData: null,
         retainedValues: [],
+        visibleValues: [],
         showingMap: false,
         sourceName: "value-map"
     };

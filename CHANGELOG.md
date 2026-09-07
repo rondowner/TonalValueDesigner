@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.11.0 - 2026-09-07
+
+- Made active value-map sampling report the exact assigned Painter's Value category instead of a fractional value caused by averaging or grayscale round trips.
+- Turned the Painter's Value legend into selectable visibility controls.
+- Added **Isolate Values** behavior: unselected values display as pale blue while selected values retain their map grays.
+- Kept isolation non-destructive; value editing and PNG export continue to use the complete underlying value map.
+- Added exact-category and non-destructive isolation regression coverage.
+- Left Value Eye Trainer at v1.3 because its implementation did not change.
+
 ## Value Eye Trainer 1.3 - 2026-08-12
 
 - Changed the trainer header to **Value Eye Trainer (working prototype)**.

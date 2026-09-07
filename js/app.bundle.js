@@ -4,7 +4,7 @@
 
 /* ===== version.js ===== */
 "use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.10.1",buildDate:"2026-08-12"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.11.0",buildDate:"2026-09-07"});
 
 /* ===== color.js ===== */
 "use strict";
@@ -1145,6 +1145,50 @@ const TonalValueDesignerValueMap = (() => {
         return output;
     }
 
+    function valueAt(imageData, x, y, retainedValues) {
+        if (!imageData || !retainedValues?.length) return null;
+        const safeX = Math.max(0, Math.min(imageData.width - 1, Math.floor(x)));
+        const safeY = Math.max(0, Math.min(imageData.height - 1, Math.floor(y)));
+        const index = (safeY * imageData.width + safeX) * 4;
+        const gray = imageData.data[index];
+        return retainedValues.reduce((nearest, value) =>
+            Math.abs(grayForPainterValue(value) - gray) < Math.abs(grayForPainterValue(nearest) - gray)
+                ? value
+                : nearest
+        );
+    }
+
+    function isolate(imageData, retainedValues, visibleValues, maskColor = [190, 222, 242]) {
+        if (!imageData || !retainedValues?.length) return imageData;
+        const visible = new Set(visibleValues);
+        if (visible.size === retainedValues.length && retainedValues.every(value => visible.has(value))) {
+            return imageData;
+        }
+        const output = new ImageData(
+            new Uint8ClampedArray(imageData.data),
+            imageData.width,
+            imageData.height
+        );
+        const valueByGray = new Map(retainedValues.map(value => [grayForPainterValue(value), value]));
+        for (let index = 0; index < output.data.length; index += 4) {
+            const gray = output.data[index];
+            let value = valueByGray.get(gray);
+            if (value === undefined) {
+                value = retainedValues.reduce((nearest, candidate) =>
+                    Math.abs(grayForPainterValue(candidate) - gray) < Math.abs(grayForPainterValue(nearest) - gray)
+                        ? candidate
+                        : nearest
+                );
+            }
+            if (!visible.has(value)) {
+                output.data[index] = maskColor[0];
+                output.data[index + 1] = maskColor[1];
+                output.data[index + 2] = maskColor[2];
+            }
+        }
+        return output;
+    }
+
     function makeLegend(retainedValues) {
         return retainedValues
             .slice()
@@ -1152,7 +1196,7 @@ const TonalValueDesignerValueMap = (() => {
             .map(value => ({ value, gray: grayForPainterValue(value) }));
     }
 
-    return Object.freeze({ parseValues, generate, makeLegend, grayForPainterValue });
+    return Object.freeze({ parseValues, generate, valueAt, isolate, makeLegend, grayForPainterValue });
 })();
 
 /* ===== massing.js ===== */
@@ -1620,6 +1664,8 @@ const CoreEngine = Object.freeze({
 
     parseValues: TonalValueDesignerValueMap.parseValues,
     generateValueMap: TonalValueDesignerValueMap.generate,
+    valueAt: TonalValueDesignerValueMap.valueAt,
+    isolateValueMap: TonalValueDesignerValueMap.isolate,
     grayForPainterValue: TonalValueDesignerValueMap.grayForPainterValue,
     makeValueLegend: TonalValueDesignerValueMap.makeLegend,
     squintValueMap: SquintEngine.simplify,
@@ -1765,6 +1811,7 @@ function createDocumentState() {
         originalData: null,
         mapData: null,
         retainedValues: [],
+        visibleValues: [],
         showingMap: false,
         sourceName: "value-map"
     };
@@ -2518,6 +2565,7 @@ document.addEventListener("DOMContentLoaded", () => {
             documentState.originalData = context.getImageData(0, 0, canvas.width, canvas.height);
             documentState.mapData = null;
             documentState.retainedValues = [];
+            documentState.visibleValues = [];
             documentState.showingMap = false;
             documentState.selectedPoint = documentState.measurement = null;
             documentState.sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
@@ -2544,6 +2592,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function activeData() {
         if (!documentState.showingMap) return documentState.originalData;
         return squintPreviewData || documentState.mapData || documentState.originalData;
+    }
+
+    function displayedData() {
+        const data = activeData();
+        if (!documentState.showingMap || !documentState.mapData) return data;
+        return CoreEngine.isolateValueMap(
+            data,
+            documentState.retainedValues,
+            documentState.visibleValues
+        );
     }
 
     function setupTabs() {
@@ -2682,7 +2740,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     function redraw() {
         canvasRenderer.render({
-            baseData: activeData(),
+            baseData: displayedData(),
             selectionOverlayData: interactionState.selectedMass ? interactionState.selectionHighlightData : null,
             lasso: (interactionState.drawingMode || interactionState.selectionRefineMode) && interactionState.lassoPoints.length
                 ? { points: interactionState.lassoPoints, complete: interactionState.lassoComplete }
@@ -2709,6 +2767,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 documentState.mapData = CoreEngine.generateValueMap(documentState.originalData, values);
                 squintPreviewData = null;
                 documentState.retainedValues = values;
+                documentState.visibleValues = values.slice();
                 documentState.showingMap = true;
                 documentState.selectedPoint = documentState.measurement = null;
                 $("emptyResult").hidden = false;
@@ -2759,16 +2818,38 @@ document.addEventListener("DOMContentLoaded", () => {
         const legend = $("valueLegend");
         legend.textContent = "";
         CoreEngine.makeValueLegend(documentState.retainedValues).forEach(item => {
-            const entry = document.createElement("div");
+            const entry = document.createElement("button");
+            entry.type = "button";
             entry.className = "legend-item";
+            entry.setAttribute("aria-pressed", String(documentState.visibleValues.includes(item.value)));
+            entry.setAttribute("aria-label", `Toggle Painter's Value ${item.value.toFixed(1)}`);
             const swatch = document.createElement("span");
             swatch.className = "legend-swatch";
             swatch.style.background = `rgb(${item.gray},${item.gray},${item.gray})`;
             const label = document.createElement("span");
-            label.textContent = `Value ${item.value}`;
+            label.textContent = `Value ${item.value.toFixed(1)}`;
             entry.append(swatch, label);
+            entry.addEventListener("click", () => {
+                const visible = new Set(documentState.visibleValues);
+                if (visible.has(item.value)) visible.delete(item.value);
+                else visible.add(item.value);
+                documentState.visibleValues = documentState.retainedValues.filter(value => visible.has(value));
+                entry.setAttribute("aria-pressed", String(visible.has(item.value)));
+                documentState.selectedPoint = documentState.measurement = null;
+                $("emptyResult").hidden = false;
+                $("measurementResult").hidden = true;
+                redraw();
+                const selection = documentState.visibleValues.length
+                    ? documentState.visibleValues.map(value => value.toFixed(1)).join(", ")
+                    : "none";
+                setMapStatus(`Visible Painter's Values: ${selection}. Select a value label to show or hide it.`);
+            });
             legend.append(entry);
         });
+        const help = document.createElement("p");
+        help.className = "legend-help";
+        help.textContent = "Select value labels to show or hide those values. Hidden values appear light blue; the underlying map and saved PNG are unchanged.";
+        legend.append(help);
         legend.hidden = false;
     }
 
@@ -3716,6 +3797,14 @@ document.addEventListener("DOMContentLoaded", () => {
             documentState.selectedPoint.y,
             Number($("sampleSize").value)
         );
+        if (documentState.showingMap && documentState.mapData) {
+            documentState.measurement.value = CoreEngine.valueAt(
+                activeData(),
+                documentState.selectedPoint.x,
+                documentState.selectedPoint.y,
+                documentState.retainedValues
+            );
+        }
         displayMeasurement();
         redraw();
     }
