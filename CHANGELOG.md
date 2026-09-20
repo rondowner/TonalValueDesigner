@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.11.1 - 2026-09-20
+
+- Preserved an independent scroll position for every tool tab and restored it when returning to that tab.
+- Added support for the desktop control-column scroller and the page scroller used by narrow tablet and phone layouts.
+- Moved the sampled Painter's Value label out of the transformed image bitmap and into a screen-space interface overlay.
+- Kept the value label sharp, consistently sized, edge-aware, and attached to its sampled image coordinate through pan and zoom.
+- Continued to exclude the sampling label from exported images.
+- Added regression coverage for tab scroll memory and the screen-space sampling annotation.
+- Left Value Eye Trainer at v1.3 because its implementation did not change.
+
 ## 2.11.0 - 2026-09-07
 
 - Made active value-map sampling report the exact assigned Painter's Value category instead of a fractional value caused by averaging or grayscale round trips.

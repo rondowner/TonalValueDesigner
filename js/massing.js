@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-import TonalValueDesignerValueMap from "./valueMap.js?v=2.11.0";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.11.1";
 
 const TonalValueDesignerMassing = (() => {
     function cloneImageData(imageData) {

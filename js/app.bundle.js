@@ -4,7 +4,7 @@
 
 /* ===== version.js ===== */
 "use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.11.0",buildDate:"2026-09-07"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.11.1",buildDate:"2026-09-20"});
 
 /* ===== color.js ===== */
 "use strict";
@@ -1916,48 +1916,6 @@ function createCanvasRenderer({ canvas, context, getScale, createLayerCanvas }) 
         context.restore();
     }
 
-    function drawValueBadge(x, y, value) {
-        const currentScale = scale();
-        const text = `Value ${Number(value).toFixed(1)}`;
-        const fontSize = 16 / currentScale;
-        const horizontalPadding = 9 / currentScale;
-        const badgeHeight = 32 / currentScale;
-        const gap = 14 / currentScale;
-        const radius = 6 / currentScale;
-
-        context.save();
-        context.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        context.textAlign = "left";
-        context.textBaseline = "middle";
-        const badgeWidth = context.measureText(text).width + horizontalPadding * 2;
-        let badgeX = x + gap;
-        let badgeY = y - gap - badgeHeight;
-        if (badgeX + badgeWidth > canvas.width) badgeX = x - gap - badgeWidth;
-        if (badgeY < 0) badgeY = y + gap;
-        badgeX = clamp(badgeX, 0, Math.max(0, canvas.width - badgeWidth));
-        badgeY = clamp(badgeY, 0, Math.max(0, canvas.height - badgeHeight));
-
-        context.beginPath();
-        context.moveTo(badgeX + radius, badgeY);
-        context.lineTo(badgeX + badgeWidth - radius, badgeY);
-        context.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + radius);
-        context.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - radius);
-        context.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - radius, badgeY + badgeHeight);
-        context.lineTo(badgeX + radius, badgeY + badgeHeight);
-        context.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - radius);
-        context.lineTo(badgeX, badgeY + radius);
-        context.quadraticCurveTo(badgeX, badgeY, badgeX + radius, badgeY);
-        context.closePath();
-        context.fillStyle = "rgba(24, 28, 34, 0.94)";
-        context.fill();
-        context.strokeStyle = "rgba(255, 255,255, 0.95)";
-        context.lineWidth = 1.5 / currentScale;
-        context.stroke();
-        context.fillStyle = "#ffffff";
-        context.fillText(text, badgeX + horizontalPadding, badgeY + badgeHeight / 2);
-        context.restore();
-    }
-
     function drawBrushCursor(point, radius) {
         if (!point) return;
         const currentScale = scale();
@@ -1993,9 +1951,6 @@ function createCanvasRenderer({ canvas, context, getScale, createLayerCanvas }) 
         if (lasso) drawLasso(lasso.points, lasso.complete);
         else if (sample) {
             drawCrosshair(sample.point.x, sample.point.y);
-            if (sample.value !== null && sample.value !== undefined) {
-                drawValueBadge(sample.point.x, sample.point.y, sample.value);
-            }
         }
         if (brush) drawBrushCursor(brush.point, brush.radius);
     }
@@ -2013,6 +1968,7 @@ function TonalValueDesignerViewport({container,stage,canvas,onTap,onChange}){
  function setScale(next,cx,cy){next=Math.min(MAX,Math.max(MIN,next));const r=container.getBoundingClientRect();cx??=r.left+r.width/2;cy??=r.top+r.height/2;const lx=cx-r.left,ly=cy-r.top,ix=(lx-x)/scale,iy=(ly-y)/scale;scale=next;x=lx-ix*scale;y=ly-iy*scale;render();}
  function fit(){const{w,h}=size();scale=Math.min(MAX,w/canvas.width,h/canvas.height);x=(w-canvas.width*scale)/2;y=(h-canvas.height*scale)/2;render();}
  function imagePoint(cx,cy){const r=container.getBoundingClientRect();return{x:Math.floor((cx-r.left-x)/scale),y:Math.floor((cy-r.top-y)/scale)};}
+ function imageToContainer(imageX,imageY){return{x:x+imageX*scale,y:y+imageY*scale};}
  container.addEventListener("wheel",e=>{if(!interactionEnabled)return;e.preventDefault();setScale(scale*Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);},{passive:false});
  container.addEventListener("pointerdown",e=>{if(!interactionEnabled)return;e.preventDefault();container.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});start=singlePointerEnabled?{x:e.clientX,y:e.clientY,panX:x,panY:y}:null;moved=false;if(pointers.size===2){const p=[...pointers.values()];pinch={d:Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y),scale};}if(singlePointerEnabled)container.classList.add("is-panning");});
  container.addEventListener("pointermove",e=>{if(!interactionEnabled||!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[1].x-p[0].x,p[1].y-p[0].y);moved=true;setScale(pinch.scale*d/pinch.d,(p[0].x+p[1].x)/2,(p[0].y+p[1].y)/2);}else if(start){const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.hypot(dx,dy)>SLOP)moved=true;if(moved){x=start.panX+dx;y=start.panY+dy;render();}}});
@@ -2021,7 +1977,7 @@ function TonalValueDesignerViewport({container,stage,canvas,onTap,onChange}){
  function setInteractionEnabled(enabled){interactionEnabled=Boolean(enabled);if(!interactionEnabled){pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}}
  function setSinglePointerEnabled(enabled){singlePointerEnabled=Boolean(enabled);pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}
  function setTapEnabled(enabled){tapEnabled=Boolean(enabled);}
- return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,imagePoint,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};}
+ return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,imagePoint,imageToContainer,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};}
 
 /* ===== featureSegmentation.js ===== */
 "use strict";
@@ -2445,6 +2401,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         onChange: scale => {
             $("zoomLevel").textContent = `${Math.round(scale * 100)}%`;
+            updateSampleOverlay();
 
             // Redraw only when magnification changes. The badge is sized in
             // screen units, so this keeps it readable at every zoom level.
@@ -2606,7 +2563,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function setupTabs() {
         const buttons = [...document.querySelectorAll('[role="tab"]')];
+        const scrollPositions = new Map(buttons.map(button => [button.id, 0]));
+        const scrollHost = () => window.innerWidth <= 900
+            ? document.scrollingElement
+            : document.querySelector(".control-panel");
         function activate(button, moveFocus = false) {
+            const previous = buttons.find(candidate => candidate.getAttribute("aria-selected") === "true");
+            const previousHost = scrollHost();
+            if (previous && previousHost) scrollPositions.set(previous.id, previousHost.scrollTop);
             if (interactionState.drawingMode && button.id !== "massingTabButton") {
                 cancelDrawing("Drawing cancelled when switching tools.");
             }
@@ -2629,6 +2593,10 @@ document.addEventListener("DOMContentLoaded", () => {
             $("appLayout").classList.toggle("eye-trainer-active", trainerActive);
             if (!trainerActive) viewport.refresh();
             if (moveFocus) button.focus();
+            requestAnimationFrame(() => {
+                const destinationHost = scrollHost();
+                if (destinationHost) destinationHost.scrollTop = scrollPositions.get(button.id) || 0;
+            });
         }
         buttons.forEach((button, index) => {
             button.addEventListener("click", () => activate(button));
@@ -2752,6 +2720,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? { point: interactionState.brushCursorPoint, radius: currentBrushRadius() }
                 : null
         });
+        updateSampleOverlay();
+    }
+
+    function updateSampleOverlay() {
+        const overlay = $("sampleValueOverlay");
+        if (!overlay || !documentState.selectedPoint || documentState.measurement?.value === null || documentState.measurement?.value === undefined) {
+            if (overlay) overlay.hidden = true;
+            return;
+        }
+        const point = viewport.imageToContainer(documentState.selectedPoint.x, documentState.selectedPoint.y);
+        const container = $("canvasContainer");
+        if (point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
+            overlay.hidden = true;
+            return;
+        }
+        overlay.textContent = `Value ${Number(documentState.measurement.value).toFixed(1)}`;
+        overlay.hidden = false;
+        const gap = 14;
+        const width = overlay.offsetWidth;
+        const height = overlay.offsetHeight;
+        let left = point.x + gap;
+        let top = point.y - gap - height;
+        if (left + width > container.clientWidth) left = point.x - gap - width;
+        if (top < 0) top = point.y + gap;
+        overlay.style.left = `${Math.max(0, Math.min(container.clientWidth - width, left))}px`;
+        overlay.style.top = `${Math.max(0, Math.min(container.clientHeight - height, top))}px`;
     }
 
     function generateMap() {

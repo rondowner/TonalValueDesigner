@@ -1,14 +1,14 @@
 ﻿"use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.11.0";
-import CoreEngine from "./coreEngine.js?v=2.11.0";
-import TonalValueDesignerViewport from "./viewport.js?v=2.11.0";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.11.0";
-import BrowserPlatform from "./browserPlatform.js?v=2.11.0";
-import createEditHistory from "./editHistory.js?v=2.11.0";
-import createDocumentState from "./documentState.js?v=2.11.0";
-import createInteractionState from "./interactionState.js?v=2.11.0";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.11.0";
+import TonalValueDesignerVersion from "./version.js?v=2.11.1";
+import CoreEngine from "./coreEngine.js?v=2.11.1";
+import TonalValueDesignerViewport from "./viewport.js?v=2.11.1";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.11.1";
+import BrowserPlatform from "./browserPlatform.js?v=2.11.1";
+import createEditHistory from "./editHistory.js?v=2.11.1";
+import createDocumentState from "./documentState.js?v=2.11.1";
+import createInteractionState from "./interactionState.js?v=2.11.1";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.11.1";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         onChange: scale => {
             $("zoomLevel").textContent = `${Math.round(scale * 100)}%`;
+            updateSampleOverlay();
 
             // Redraw only when magnification changes. The badge is sized in
             // screen units, so this keeps it readable at every zoom level.
@@ -219,7 +220,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function setupTabs() {
         const buttons = [...document.querySelectorAll('[role="tab"]')];
+        const scrollPositions = new Map(buttons.map(button => [button.id, 0]));
+        const scrollHost = () => window.innerWidth <= 900
+            ? document.scrollingElement
+            : document.querySelector(".control-panel");
         function activate(button, moveFocus = false) {
+            const previous = buttons.find(candidate => candidate.getAttribute("aria-selected") === "true");
+            const previousHost = scrollHost();
+            if (previous && previousHost) scrollPositions.set(previous.id, previousHost.scrollTop);
             if (interactionState.drawingMode && button.id !== "massingTabButton") {
                 cancelDrawing("Drawing cancelled when switching tools.");
             }
@@ -242,6 +250,10 @@ document.addEventListener("DOMContentLoaded", () => {
             $("appLayout").classList.toggle("eye-trainer-active", trainerActive);
             if (!trainerActive) viewport.refresh();
             if (moveFocus) button.focus();
+            requestAnimationFrame(() => {
+                const destinationHost = scrollHost();
+                if (destinationHost) destinationHost.scrollTop = scrollPositions.get(button.id) || 0;
+            });
         }
         buttons.forEach((button, index) => {
             button.addEventListener("click", () => activate(button));
@@ -365,6 +377,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? { point: interactionState.brushCursorPoint, radius: currentBrushRadius() }
                 : null
         });
+        updateSampleOverlay();
+    }
+
+    function updateSampleOverlay() {
+        const overlay = $("sampleValueOverlay");
+        if (!overlay || !documentState.selectedPoint || documentState.measurement?.value === null || documentState.measurement?.value === undefined) {
+            if (overlay) overlay.hidden = true;
+            return;
+        }
+        const point = viewport.imageToContainer(documentState.selectedPoint.x, documentState.selectedPoint.y);
+        const container = $("canvasContainer");
+        if (point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
+            overlay.hidden = true;
+            return;
+        }
+        overlay.textContent = `Value ${Number(documentState.measurement.value).toFixed(1)}`;
+        overlay.hidden = false;
+        const gap = 14;
+        const width = overlay.offsetWidth;
+        const height = overlay.offsetHeight;
+        let left = point.x + gap;
+        let top = point.y - gap - height;
+        if (left + width > container.clientWidth) left = point.x - gap - width;
+        if (top < 0) top = point.y + gap;
+        overlay.style.left = `${Math.max(0, Math.min(container.clientWidth - width, left))}px`;
+        overlay.style.top = `${Math.max(0, Math.min(container.clientHeight - height, top))}px`;
     }
 
     function generateMap() {

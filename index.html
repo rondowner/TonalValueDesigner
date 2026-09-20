@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <title>TonalValueDesigner</title>
-    <link rel="stylesheet" href="styles/styles.css?v=2.11.0">
+    <link rel="stylesheet" href="styles/styles.css?v=2.11.1">
     <style>
         body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
         .app-layout{--control-width:24rem;flex:1;min-height:0;height:auto;margin:0 auto;grid-template-columns:minmax(18rem,var(--control-width)) .75rem minmax(0,1fr);gap:.5rem}
@@ -76,6 +76,7 @@
         .canvas-container.painting-value{cursor:none}
         .canvas-container.paint-pan:not(.is-panning){cursor:grab}
         .canvas-container.explicit-pan:not(.is-panning){cursor:grab}
+        .sample-value-overlay{position:absolute;z-index:5;min-width:max-content;padding:.35rem .6rem;color:#fff;background:rgba(24,28,34,.95);border:1px solid rgba(255,255,255,.95);border-radius:.4rem;box-shadow:0 2px 7px rgba(0,0,0,.4);font-size:1rem;font-weight:700;line-height:1.25;pointer-events:none;font-variant-numeric:tabular-nums;transform:translateZ(0);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
         .mode-indicator{margin-left:auto;color:#d1d5da;font-size:.85rem}
         .collapsible-panel{flex:none;padding:0;overflow:hidden}
         .collapsible-panel>summary,.color-details>summary{padding:1rem;font-weight:700;cursor:pointer;list-style-position:inside}
@@ -137,7 +138,7 @@
     <header class="app-header">
         <div><h1>TonalValueDesigner ©</h1><p class="subtitle">Create value maps, value studies, and make value-based design decisions.</p></div>
         <div class="version-badge">
-            <div class="release-line"><span id="appVersion">v2.11.0</span> <span id="buildDate">built 2026-09-07</span></div>
+            <div class="release-line"><span id="appVersion">v2.11.1</span> <span id="buildDate">built 2026-09-20</span></div>
             <div class="copyright-line"><strong>Copyright © 2026 Ron Downer. All Rights Reserved.</strong></div>
             <button id="openAbout" class="about-link" type="button">About Tonal Value Designer</button>
         </div>
@@ -332,7 +333,7 @@
         <section id="imageWorkspace" class="image-panel">
             <div id="viewportToolbar" class="viewport-toolbar" hidden><button id="zoomOut" type="button" aria-label="Zoom out">−</button><output id="zoomLevel">100%</output><button id="zoomIn" type="button" aria-label="Zoom in">+</button><button id="fitImage" type="button">Fit Image</button><button id="actualSize" type="button">100%</button><button id="panImage" type="button" aria-pressed="false">Pan Image</button><span id="modeIndicator" class="mode-indicator">Original</span></div>
             <div id="imagePlaceholder" class="image-placeholder"><div><strong>No image loaded</strong><p>Choose a photograph of your palette, painting, or reference.</p></div></div>
-            <div id="canvasContainer" class="canvas-container" hidden><div id="canvasStage" class="canvas-stage"><canvas id="imageCanvas" aria-label="Loaded image. Tap to sample; drag to pan."></canvas></div></div>
+            <div id="canvasContainer" class="canvas-container" hidden><div id="canvasStage" class="canvas-stage"><canvas id="imageCanvas" aria-label="Loaded image. Tap to sample; drag to pan."></canvas></div><div id="sampleValueOverlay" class="sample-value-overlay" role="status" hidden></div></div>
             <div class="image-instructions"><p>Tap to sample. Drag to pan. Use the wheel or pinch to zoom.</p></div>
         </section>
         <section id="eyeTrainerWorkspace" class="eye-trainer-workspace" aria-label="Value Eye Trainer workspace" hidden>
@@ -381,7 +382,7 @@
         </div>
     </dialog>
 
-    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v2.11.0</span> — approximate, not a certified Munsell reading.</p></footer>
-    <script src="js/app.bundle.js?v=2.11.0"></script>
+    <footer class="app-footer"><p>TonalValueDesigner <span id="footerVersion">v2.11.1</span> — approximate, not a certified Munsell reading.</p></footer>
+    <script src="js/app.bundle.js?v=2.11.1"></script>
 </body>
 </html>

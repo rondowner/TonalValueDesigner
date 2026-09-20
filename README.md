@@ -1,4 +1,4 @@
-# TonalValueDesigner 2.11.0
+# TonalValueDesigner 2.11.1
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -51,7 +51,7 @@ On desktop, drag the vertical divider between the controls and image to redistri
 4. Open **Color Details** when you need CIELAB, RGB, hexadecimal, sample-size, or image-position data.
 5. Optionally enter a planned value and tolerance.
 
-The on-image value label remains readable while zooming, moves to stay inside the photograph near an edge, and is replaced by the next sample. It is an interface aid and is not included in saved value maps.
+The on-image value label is rendered as a sharp screen-space overlay rather than as part of the magnified image bitmap. It remains consistently sized and in focus while zooming, follows its sampled point while panning, moves to stay inside the photograph near an edge, and is replaced by the next sample. It is an interface aid and is not included in saved value maps.
 
 ## Pan and zoom
 
@@ -76,7 +76,7 @@ A short tap or click samples the image. Dragging navigates without changing the 
 
 Sampling an active value map reports the exact assigned category (for example, `4.0` or `5.0`) rather than remeasuring an averaged grayscale color. The saved PNG does not contain the sampling crosshair, interface controls, or pale-blue isolation mask: it always contains the complete underlying value map. The on-screen legend identifies every gray by its Painter's Value number.
 
-The presets include **Notan** (Values 1 and 10) plus three-, five-, and seven-value studies. The three-value preset (`2, 5, 8`) is initially selected. On desktop, the controls and image workspace scroll independently so the reference remains in view while using controls farther down the page.
+The presets include **Notan** (Values 1 and 10) plus three-, five-, and seven-value studies. The three-value preset (`2, 5, 8`) is initially selected. On desktop, the controls and image workspace scroll independently so the reference remains in view while using controls farther down the page. Each tool tab remembers its own control-panel scroll position and restores that position when revisited; narrow layouts do the same with the page scroll position.
 
 ## Select and Adjust Value Mass
 
@@ -182,7 +182,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.11.0 was built on 2026-09-07.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.11.1 was built on 2026-09-20.
 
 TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.3 and is labeled as a working prototype.
 

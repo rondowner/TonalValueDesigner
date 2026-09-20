@@ -64,48 +64,6 @@ function createCanvasRenderer({ canvas, context, getScale, createLayerCanvas }) 
         context.restore();
     }
 
-    function drawValueBadge(x, y, value) {
-        const currentScale = scale();
-        const text = `Value ${Number(value).toFixed(1)}`;
-        const fontSize = 16 / currentScale;
-        const horizontalPadding = 9 / currentScale;
-        const badgeHeight = 32 / currentScale;
-        const gap = 14 / currentScale;
-        const radius = 6 / currentScale;
-
-        context.save();
-        context.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-        context.textAlign = "left";
-        context.textBaseline = "middle";
-        const badgeWidth = context.measureText(text).width + horizontalPadding * 2;
-        let badgeX = x + gap;
-        let badgeY = y - gap - badgeHeight;
-        if (badgeX + badgeWidth > canvas.width) badgeX = x - gap - badgeWidth;
-        if (badgeY < 0) badgeY = y + gap;
-        badgeX = clamp(badgeX, 0, Math.max(0, canvas.width - badgeWidth));
-        badgeY = clamp(badgeY, 0, Math.max(0, canvas.height - badgeHeight));
-
-        context.beginPath();
-        context.moveTo(badgeX + radius, badgeY);
-        context.lineTo(badgeX + badgeWidth - radius, badgeY);
-        context.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + radius);
-        context.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - radius);
-        context.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - radius, badgeY + badgeHeight);
-        context.lineTo(badgeX + radius, badgeY + badgeHeight);
-        context.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - radius);
-        context.lineTo(badgeX, badgeY + radius);
-        context.quadraticCurveTo(badgeX, badgeY, badgeX + radius, badgeY);
-        context.closePath();
-        context.fillStyle = "rgba(24, 28, 34, 0.94)";
-        context.fill();
-        context.strokeStyle = "rgba(255, 255,255, 0.95)";
-        context.lineWidth = 1.5 / currentScale;
-        context.stroke();
-        context.fillStyle = "#ffffff";
-        context.fillText(text, badgeX + horizontalPadding, badgeY + badgeHeight / 2);
-        context.restore();
-    }
-
     function drawBrushCursor(point, radius) {
         if (!point) return;
         const currentScale = scale();
@@ -141,9 +99,6 @@ function createCanvasRenderer({ canvas, context, getScale, createLayerCanvas }) 
         if (lasso) drawLasso(lasso.points, lasso.complete);
         else if (sample) {
             drawCrosshair(sample.point.x, sample.point.y);
-            if (sample.value !== null && sample.value !== undefined) {
-                drawValueBadge(sample.point.x, sample.point.y, sample.value);
-            }
         }
         if (brush) drawBrushCursor(brush.point, brush.radius);
     }

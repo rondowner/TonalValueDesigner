@@ -200,7 +200,7 @@ test("Canvas renderer exposes a host boundary and draws supplied layers", () => 
     assert.ok(calls.includes("putImageData"));
     assert.ok(calls.filter(call => call === "drawImage").length >= 2);
     assert.ok(calls.includes("arc"));
-    assert.ok(calls.includes("fillText"));
+    assert.equal(calls.includes("fillText"), false);
     assert.ok(calls.includes("setLineDash"));
     assert.equal(layerCanvasCreations, 1);
     assert.throws(() => createCanvasRenderer({ canvas: null, context, getScale: () => 1, createLayerCanvas: () => ({}) }));
@@ -212,6 +212,25 @@ test("Sampling delegates host-neutral image data to the core engine", async () =
     assert.ok(measureBody.includes("CoreEngine.measureValue("));
     assert.ok(measureBody.includes("activeData()"));
     assert.equal(measureBody.includes("context.getImageData"), false);
+});
+
+test("Sample labels use a crisp screen-space overlay", async () => {
+    const appSource = await readFile(new URL("../js/app.js", import.meta.url), "utf8");
+    const rendererSource = await readFile(new URL("../js/canvasRenderer.js", import.meta.url), "utf8");
+    const viewportSource = await readFile(new URL("../js/viewport.js", import.meta.url), "utf8");
+    const pageSource = await readFile(new URL("../index.html", import.meta.url), "utf8");
+    assert.ok(pageSource.includes('id="sampleValueOverlay"'));
+    assert.ok(appSource.includes("function updateSampleOverlay()"));
+    assert.ok(appSource.includes("viewport.imageToContainer("));
+    assert.ok(viewportSource.includes("function imageToContainer("));
+    assert.equal(rendererSource.includes("function drawValueBadge("), false);
+});
+
+test("Tabs preserve independent control-panel scroll positions", async () => {
+    const appSource = await readFile(new URL("../js/app.js", import.meta.url), "utf8");
+    assert.ok(appSource.includes("const scrollPositions = new Map"));
+    assert.ok(appSource.includes("scrollPositions.set(previous.id, previousHost.scrollTop)"));
+    assert.ok(appSource.includes("destinationHost.scrollTop = scrollPositions.get(button.id) || 0"));
 });
 
 test("Value measurement averages image data and reports Painter's Value", () => {
