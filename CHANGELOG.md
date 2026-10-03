@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.13.5 - 2026-10-03
+
+- Added the approved three-tone mountain favicon for browser tabs and bookmarks.
+- Included multi-size ICO, PNG icons, and an Apple touch icon for home-screen shortcuts.
+
 ## 2.13.4 - 2026-10-03
 
 - Reduced tool-panel action button text to 0.95rem, one small type step below the 1.05rem panel headings.
