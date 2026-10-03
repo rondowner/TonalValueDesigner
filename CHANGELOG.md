@@ -1,5 +1,53 @@
 # Changelog
 
+## 2.13.4 - 2026-10-03
+
+- Reduced tool-panel action button text to 0.95rem, one small type step below the 1.05rem panel headings.
+- Kept existing button padding and minimum heights; instructional links and compact value legend labels retain their existing sizes.
+
+## 2.13.3 - 2026-10-03
+
+- Scaled the forest proportionally to the header height and repeated it horizontally, restoring natural tree proportions without changing header dimensions.
+
+## 2.13.2 - 2026-10-03
+
+- Fit the entire forest artwork within the existing header instead of enlarging and cropping it, preserving the recognizable row of trees.
+- Reduced the ivory overlay slightly to strengthen tree silhouettes while retaining charcoal text.
+- Kept header dimensions and layout unchanged.
+
+## 2.13.1 - 2026-10-03
+
+- Applied the supplied forest artwork to the header with a subdued ivory overlay and charcoal text.
+- Preserved existing header dimensions, padding, typography sizes, and responsive layout.
+
+## 2.13.0 - 2026-10-03
+
+- Added a first-visit welcome linked to the full About introduction.
+- Added first-use introductions for tool tabs and key actions, with browser-local memory, Skip Introductions, Reset Introductions, and a persistent Help for this tool link.
+- Updated Value Eye Trainer to v1.4: Value Comparison and Value Identification swatches use whole and half value steps.
+- Comparison scoring gives 10 points for the correct relation, 5 for Same when the difference is 0.5, and 0 for other guesses.
+- Added explanatory scoring text and removed ambiguous value-group labels from comparison feedback.
+
+## 2.12.2 - 2026-10-03
+
+- Renamed selection refinement buttons to Add (Drawn) Area and Remove (Drawn) Area to clarify their purpose.
+
+## 2.12.1 - 2026-10-03
+
+- Fixed Select Mass so clicking it again exits selection, clears its pressed appearance, and restores sampling and pan/zoom interaction.
+- Fixed Add Area and Remove Area so clicking the active button again cancels refinement while preserving the selected mass.
+- Allowed direct switching between Add Area and Remove Area.
+- Added controller regression coverage for toggle behavior and restored interaction.
+- Eye Trainer remains v1.3; whole/half-step comparison training is queued separately.
+
+## 2.12.0 - 2026-09-20
+
+- Added continuous perceptual B&W generation using the same CIELAB lightness foundation as value mapping.
+- Added B&W PNG export.
+- Added PC/tablet side-by-side comparison with independent Original Color, Continuous B&W, and Painter's Value Map source choices.
+- Added synchronized pan and zoom between comparison panes.
+- Preserved the single-image workflow on phones.
+
 ## 2.11.1 - 2026-09-20
 
 - Preserved an independent scroll position for every tool tab and restored it when returning to that tab.

@@ -4,7 +4,7 @@
 
 /* ===== version.js ===== */
 "use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.11.1",buildDate:"2026-09-20"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.13.4",buildDate:"2026-10-03"});
 
 /* ===== color.js ===== */
 "use strict";
@@ -1106,8 +1106,7 @@ const TonalValueDesignerValueMap = (() => {
         return nearest;
     }
 
-    function grayForPainterValue(value) {
-        const targetLightness = (value - 1) * 100 / 9;
+    function grayForLightness(targetLightness) {
         let low = 0;
         let high = 255;
         for (let count = 0; count < 10; count += 1) {
@@ -1117,6 +1116,35 @@ const TonalValueDesignerValueMap = (() => {
             else high = middle;
         }
         return Math.max(0, Math.min(255, Math.round((low + high) / 2)));
+    }
+
+    function grayForPainterValue(value) {
+        return grayForLightness((value - 1) * 100 / 9);
+    }
+
+    function grayscale(sourceImageData) {
+        const output = new ImageData(
+            new Uint8ClampedArray(sourceImageData.data.length),
+            sourceImageData.width,
+            sourceImageData.height
+        );
+        const grayByRoundedLightness = new Uint8Array(1001);
+        for (let lightness = 0; lightness <= 1000; lightness += 1) {
+            grayByRoundedLightness[lightness] = grayForLightness(lightness / 10);
+        }
+        for (let index = 0; index < sourceImageData.data.length; index += 4) {
+            const lightness = lightnessFromRgb(
+                sourceImageData.data[index],
+                sourceImageData.data[index + 1],
+                sourceImageData.data[index + 2]
+            );
+            const gray = grayByRoundedLightness[Math.max(0, Math.min(1000, Math.round(lightness * 10)))];
+            output.data[index] = gray;
+            output.data[index + 1] = gray;
+            output.data[index + 2] = gray;
+            output.data[index + 3] = sourceImageData.data[index + 3];
+        }
+        return output;
     }
 
     function generate(sourceImageData, retainedValues) {
@@ -1196,7 +1224,7 @@ const TonalValueDesignerValueMap = (() => {
             .map(value => ({ value, gray: grayForPainterValue(value) }));
     }
 
-    return Object.freeze({ parseValues, generate, valueAt, isolate, makeLegend, grayForPainterValue });
+    return Object.freeze({ parseValues, generate, grayscale, valueAt, isolate, makeLegend, grayForPainterValue });
 })();
 
 /* ===== massing.js ===== */
@@ -1664,6 +1692,7 @@ const CoreEngine = Object.freeze({
 
     parseValues: TonalValueDesignerValueMap.parseValues,
     generateValueMap: TonalValueDesignerValueMap.generate,
+    generateGrayscale: TonalValueDesignerValueMap.grayscale,
     valueAt: TonalValueDesignerValueMap.valueAt,
     isolateValueMap: TonalValueDesignerValueMap.isolate,
     grayForPainterValue: TonalValueDesignerValueMap.grayForPainterValue,
@@ -1809,10 +1838,12 @@ function createDocumentState() {
         measurement: null,
         lastViewportScale: 1,
         originalData: null,
+        bwData: null,
         mapData: null,
         retainedValues: [],
         visibleValues: [],
         showingMap: false,
+        showingBw: false,
         sourceName: "value-map"
     };
 
@@ -1964,7 +1995,8 @@ function TonalValueDesignerViewport({container,stage,canvas,onTap,onChange}){
  const MIN=.1,MAX=8,SLOP=7;let scale=1,x=0,y=0,start=null,moved=false,pinch=null,interactionEnabled=true,singlePointerEnabled=true,tapEnabled=true;const pointers=new Map();
  const size=()=>({w:container.clientWidth,h:container.clientHeight});
  function clampPan(){const{w,h}=size(),cw=canvas.width*scale,ch=canvas.height*scale,m=48;x=cw<=w?(w-cw)/2:Math.min(m,Math.max(w-cw-m,x));y=ch<=h?(h-ch)/2:Math.min(m,Math.max(h-ch-m,y));}
- function render(){clampPan();stage.style.width=`${canvas.width}px`;stage.style.height=`${canvas.height}px`;stage.style.transform=`translate(${x}px,${y}px) scale(${scale})`;onChange?.(scale);}
+ function viewState(){return{scale,x,y};}
+ function render(notify=true){clampPan();stage.style.width=`${canvas.width}px`;stage.style.height=`${canvas.height}px`;stage.style.transform=`translate(${x}px,${y}px) scale(${scale})`;if(notify)onChange?.(scale,viewState());}
  function setScale(next,cx,cy){next=Math.min(MAX,Math.max(MIN,next));const r=container.getBoundingClientRect();cx??=r.left+r.width/2;cy??=r.top+r.height/2;const lx=cx-r.left,ly=cy-r.top,ix=(lx-x)/scale,iy=(ly-y)/scale;scale=next;x=lx-ix*scale;y=ly-iy*scale;render();}
  function fit(){const{w,h}=size();scale=Math.min(MAX,w/canvas.width,h/canvas.height);x=(w-canvas.width*scale)/2;y=(h-canvas.height*scale)/2;render();}
  function imagePoint(cx,cy){const r=container.getBoundingClientRect();return{x:Math.floor((cx-r.left-x)/scale),y:Math.floor((cy-r.top-y)/scale)};}
@@ -1977,7 +2009,8 @@ function TonalValueDesignerViewport({container,stage,canvas,onTap,onChange}){
  function setInteractionEnabled(enabled){interactionEnabled=Boolean(enabled);if(!interactionEnabled){pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}}
  function setSinglePointerEnabled(enabled){singlePointerEnabled=Boolean(enabled);pointers.clear();start=null;pinch=null;moved=false;container.classList.remove("is-panning");}
  function setTapEnabled(enabled){tapEnabled=Boolean(enabled);}
- return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,imagePoint,imageToContainer,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};}
+ function setView(next,notify=false){if(!next)return;scale=Math.min(MAX,Math.max(MIN,Number(next.scale)||scale));x=Number.isFinite(next.x)?next.x:x;y=Number.isFinite(next.y)?next.y:y;render(notify);}
+ return{fit,actual:()=>setScale(1),zoomIn:()=>setScale(scale*1.25),zoomOut:()=>setScale(scale/1.25),getScale:()=>scale,getView:viewState,setView,imagePoint,imageToContainer,setInteractionEnabled,setSinglePointerEnabled,setTapEnabled,refresh:render};}
 
 /* ===== featureSegmentation.js ===== */
 "use strict";
@@ -2341,8 +2374,80 @@ const TonalValueDesignerFeatureSegmentation = (() => {
     });
 })();
 
+/* ===== guidance.js ===== */
+"use strict";
+
+// Guidance preferences belong to this browser; no account or server is needed.
+function setupGuidance() {
+    const key = "tvd-guidance-v1";
+    const $ = id => document.getElementById(id);
+    let preferences = { seen: [], skip: false };
+    try {
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (saved && Array.isArray(saved.seen)) preferences = { seen: saved.seen, skip: Boolean(saved.skip) };
+    } catch { /* Guidance remains usable when storage is unavailable. */ }
+    const dialog = $("guidanceDialog");
+    let currentId = "welcome";
+    const introductions = {
+        welcome: ["Welcome to TonalValueDesigner", "Explore and simplify a reference image to develop a value plan for your painting.", [
+            "Open a photograph from your device.",
+            "Create a value map using your chosen values.",
+            "Simplify and adjust value shapes to explore your composition.",
+            "Save your study, then use Value Sampling to check your painted values.",
+            "The Eye Trainer helps you practice judging values and colors with greater confidence."
+        ]],
+        samplingTabButton: ["Value Sampling", "Select a representative area of the image to estimate its Painter's Value.", ["Tap or click the image; the value appears beside your selection.", "Expand Sampling Options to change the averaging area. Photograph painted swatches in the same lighting and orientation as your painting."]],
+        mapTabButton: ["Create a Value Map", "Reduce the reference to a few intentional value groups to explore its design.", ["Choose a preset or enter the values you want, then select Generate Map.", "Select the value labels to isolate groups. Continuous B&W and Side-by-Side Compare help you compare the study with the reference.", "Save PNG exports the complete value map."]],
+        massingTabButton: ["Value Massing", "Simplified, connected value shapes give you control.", ["Use Squint to explore larger shapes, By Area to assign a value inside a boundary, or Paint Value to paint over distracting detail.", "Select and Adjust Value Mass changes an individual connected shape. Undo Last lets you step back through edits."]],
+        eyeTrainerTabButton: ["Eye Trainer", "Practice making your own assessment, then compare it with the feedback.", ["Value Comparison asks whether the second swatch is lighter, darker, or the same.", "Value Identification asks you to estimate a swatch's value. Hold Peek to check its grayscale appearance."]],
+        drawArea: ["Draw an Area", "Choose a value, then draw a boundary around the area you want to simplify.", ["Hold Shift to draw straight segments on a keyboard-equipped device.", "Select Apply Value to fill the area, or Cancel Drawing to discard the boundary."]],
+        beginPainting: ["Paint Value", "Choose a value and brush size, then paint over detail to simplify the map.", ["Click Paint Value again or Done Painting to stop.", "Use Undo Last to reverse an edit. Pan Image is available above the image."]],
+        selectMass: ["Select and Adjust Value Mass", "Tap a shape to select its connected area, then choose a new value and Apply Value.", ["Touching areas of the same value can be selected together. Add (Drawn) Area and Remove (Drawn) Area let you refine the boundary.", "Click Select Mass again or Cancel Selection to exit."]],
+        addSelectionArea: ["Add (Drawn) Area", "Draw around an area to include it in the current selection.", ["Release to update the selection. Its value changes only when you select Apply Value.", "Click this button again to cancel an unfinished boundary."]],
+        removeSelectionArea: ["Remove (Drawn) Area", "Draw around an unwanted part of the selected shape to exclude it.", ["Release to update the selection. This refines the selection without erasing the image.", "Click this button again to cancel an unfinished boundary."]],
+        previewSquint: ["Squint", "Reduce minor value variations while protecting important boundaries.", ["Adjust Squint and Protect Major Edges, then Preview.", "Apply keeps the result. Reset discards the preview; Undo Last reverses an applied edit."]],
+        showBw: ["Continuous B&W", "View the image's lightness without color or discrete value steps.", ["Use Save B&W PNG to export it. Click Show B&W again to return to the original view."]],
+        toggleComparison: ["Compare Images", "Choose the image shown in each pane: Original Color, Continuous B&W, or Value Map.", ["Pan or zoom either pane to move both views together.", "Return to Single Image to sample or edit. Comparison is available on computers and tablets."]]
+    };
+    function save() { try { localStorage.setItem(key, JSON.stringify(preferences)); } catch {} }
+    function close() { if (typeof dialog.close === "function") dialog.close(); else dialog.removeAttribute("open"); }
+    function show(id, force = false) {
+        if (!force && (preferences.skip || preferences.seen.includes(id) || dialog.open)) return;
+        const content = introductions[id];
+        if (!content) return;
+        currentId = id;
+        $("guidanceTitle").textContent = content[0];
+        $("guidanceIntro").textContent = content[1];
+        $("guidanceSteps").replaceChildren(...content[2].map(text => {
+            const item = document.createElement("li"); item.textContent = text; return item;
+        }));
+        $("guidanceContinue").textContent = id === "welcome" ? "Get Started" : "Got It";
+        if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+    }
+    function acknowledge() {
+        if (!preferences.seen.includes(currentId)) preferences.seen.push(currentId);
+        save();
+    }
+    $("guidanceContinue").onclick = () => { acknowledge(); close(); };
+    $("guidanceSkip").onclick = () => { preferences.skip = true; save(); close(); };
+    $("guidanceAbout").onclick = () => { acknowledge(); close(); $("openAbout").click(); };
+    $("guidanceReset").onclick = () => { preferences = { seen: [], skip: false }; save(); close(); show("welcome", true); };
+    $("openGuidance").onclick = () => {
+        const active = document.querySelector('[role="tab"][aria-selected="true"]');
+        show(active?.id || "welcome", true);
+    };
+    dialog.addEventListener("cancel", acknowledge);
+    for (const id of Object.keys(introductions)) {
+        if (id === "welcome") continue;
+        $(id)?.addEventListener("click", () => show(id));
+    }
+    $("imageCanvas")?.addEventListener("click", () => show("samplingTabButton"));
+    show("welcome");
+}
+
 /* ===== app.js ===== */
 "use strict";
+
 
 
 
@@ -2370,6 +2475,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const phoneFeatureRestricted = BrowserPlatform.isPhone();
     $("featurePhoneNotice").hidden = !phoneFeatureRestricted;
     $("featureDesktopControls").hidden = phoneFeatureRestricted;
+    $("comparisonPhoneNotice").hidden = !phoneFeatureRestricted;
+    $("comparisonDesktopControls").hidden = phoneFeatureRestricted;
 
     const aboutDialog = $("aboutDialog");
     $("openAbout").onclick = () => {
@@ -2388,6 +2495,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const interactionState = createInteractionState();
     const editHistory = createEditHistory({ limit: 10, applyOperation: applyMassingOperation });
     let squintPreviewData = null;
+    let comparisonActive = false;
+    let compareSyncing = false;
 
     const viewport = TonalValueDesignerViewport({
         container: $("canvasContainer"),
@@ -2420,10 +2529,35 @@ document.addEventListener("DOMContentLoaded", () => {
         createLayerCanvas: imageData => BrowserPlatform.canvasFromImageData(imageData)
     });
 
-    $("zoomIn").onclick = viewport.zoomIn;
-    $("zoomOut").onclick = viewport.zoomOut;
-    $("fitImage").onclick = viewport.fit;
-    $("actualSize").onclick = viewport.actual;
+    const compareLeftCanvas = $("compareLeftCanvas");
+    const compareRightCanvas = $("compareRightCanvas");
+    const compareLeftContext = compareLeftCanvas.getContext("2d", { willReadFrequently: false });
+    const compareRightContext = compareRightCanvas.getContext("2d", { willReadFrequently: false });
+    let compareLeftViewport;
+    let compareRightViewport;
+    function synchronizeComparison(source, state) {
+        if (!comparisonActive || compareSyncing) return;
+        compareSyncing = true;
+        const target = source === "left" ? compareRightViewport : compareLeftViewport;
+        target.setView(state, false);
+        compareSyncing = false;
+        $("zoomLevel").textContent = `${Math.round(state.scale * 100)}%`;
+    }
+    compareLeftViewport = TonalValueDesignerViewport({
+        container: $("compareLeftContainer"), stage: $("compareLeftStage"), canvas: compareLeftCanvas,
+        onChange: (scale, state) => synchronizeComparison("left", state)
+    });
+    compareRightViewport = TonalValueDesignerViewport({
+        container: $("compareRightContainer"), stage: $("compareRightStage"), canvas: compareRightCanvas,
+        onChange: (scale, state) => synchronizeComparison("right", state)
+    });
+
+    function toolbarViewport() { return comparisonActive ? compareLeftViewport : viewport; }
+
+    $("zoomIn").onclick = () => toolbarViewport().zoomIn();
+    $("zoomOut").onclick = () => toolbarViewport().zoomOut();
+    $("fitImage").onclick = () => toolbarViewport().fit();
+    $("actualSize").onclick = () => toolbarViewport().actual();
     $("sampleSize").onchange = () => documentState.selectedPoint && measure();
     $("targetValue").oninput = compare;
     $("targetTolerance").onchange = compare;
@@ -2431,6 +2565,11 @@ document.addEventListener("DOMContentLoaded", () => {
     $("generateMap").onclick = generateMap;
     $("showOriginal").onclick = toggleOriginal;
     $("saveMap").onclick = saveMap;
+    $("showBw").onclick = showBw;
+    $("saveBw").onclick = saveBw;
+    $("toggleComparison").onclick = toggleComparison;
+    $("compareLeftSource").onchange = renderComparison;
+    $("compareRightSource").onchange = renderComparison;
     $("insertValueComma").onclick = insertValueComma;
     $("drawArea").onclick = beginDrawing;
     $("applyMassing").onclick = applyMassing;
@@ -2472,6 +2611,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setupTabs();
     setupLearningPanels();
+    setupGuidance();
     updateSquintLabels();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
@@ -2520,15 +2660,17 @@ document.addEventListener("DOMContentLoaded", () => {
             canvas.height = image.naturalHeight;
             canvasRenderer.drawSourceImage(image);
             documentState.originalData = context.getImageData(0, 0, canvas.width, canvas.height);
+            documentState.bwData = CoreEngine.generateGrayscale(documentState.originalData);
             documentState.mapData = null;
             documentState.retainedValues = [];
             documentState.visibleValues = [];
             documentState.showingMap = false;
+            documentState.showingBw = false;
             documentState.selectedPoint = documentState.measurement = null;
             documentState.sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
             resetMassing();
             resetFeatureAnalysis();
-            $("panImage").disabled = false;
+            $("panImage").disabled = comparisonActive;
             $("fileName").textContent = `${file.name} â€” ${canvas.width} Ã— ${canvas.height}`;
             $("imagePlaceholder").hidden = true;
             $("canvasContainer").hidden = false;
@@ -2537,16 +2679,31 @@ document.addEventListener("DOMContentLoaded", () => {
             $("measurementResult").hidden = true;
             $("showOriginal").disabled = true;
             $("saveMap").disabled = true;
+            $("showBw").disabled = false;
+            $("saveBw").disabled = false;
+            $("compareLeftSource").disabled = phoneFeatureRestricted;
+            $("compareRightSource").disabled = phoneFeatureRestricted;
+            $("toggleComparison").disabled = phoneFeatureRestricted;
+            setMapOptionAvailability(false);
+            setBwStatus("Continuous B&W is ready to view or save.");
             $("valueLegend").hidden = true;
             setMapStatus("Choose the Painter's Values you want to retain.");
             updateMode();
-            requestAnimationFrame(viewport.fit);
+            requestAnimationFrame(() => {
+                if (comparisonActive) {
+                    renderComparison();
+                    compareLeftViewport.fit();
+                } else {
+                    viewport.fit();
+                }
+            });
         } catch (error) {
             $("fileName").textContent = error.message || "TonalValueDesigner could not open that image.";
         }
     });
 
     function activeData() {
+        if (documentState.showingBw) return documentState.bwData || documentState.originalData;
         if (!documentState.showingMap) return documentState.originalData;
         return squintPreviewData || documentState.mapData || documentState.originalData;
     }
@@ -2591,7 +2748,7 @@ document.addEventListener("DOMContentLoaded", () => {
             $("eyeTrainerWorkspace").hidden = !trainerActive;
             $("layoutSplitter").hidden = trainerActive;
             $("appLayout").classList.toggle("eye-trainer-active", trainerActive);
-            if (!trainerActive) viewport.refresh();
+            if (!trainerActive) toolbarViewport().refresh();
             if (moveFocus) button.focus();
             requestAnimationFrame(() => {
                 const destinationHost = scrollHost();
@@ -2665,7 +2822,7 @@ document.addEventListener("DOMContentLoaded", () => {
             splitter.setAttribute("aria-valuemin", minimum);
             splitter.setAttribute("aria-valuemax", maximum);
             splitter.setAttribute("aria-valuenow", adjusted);
-            viewport.refresh();
+            toolbarViewport().refresh();
         }
         splitter.addEventListener("pointerdown", event => {
             if (window.innerWidth <= 900) return;
@@ -2721,6 +2878,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 : null
         });
         updateSampleOverlay();
+        if (comparisonActive) renderComparison();
     }
 
     function updateSampleOverlay() {
@@ -2763,12 +2921,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 documentState.retainedValues = values;
                 documentState.visibleValues = values.slice();
                 documentState.showingMap = true;
+                documentState.showingBw = false;
                 documentState.selectedPoint = documentState.measurement = null;
                 $("emptyResult").hidden = false;
                 $("measurementResult").hidden = true;
                 $("showOriginal").disabled = false;
                 $("showOriginal").textContent = "Show Original";
                 $("saveMap").disabled = false;
+                setMapOptionAvailability(true);
                 prepareMassing(values);
                 renderLegend();
                 redraw();
@@ -2787,7 +2947,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when the view changed.");
         if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when the view changed.");
         if (interactionState.paintMode) endPainting("Painting finished when the view changed.");
-        documentState.showingMap = !documentState.showingMap;
+        if (documentState.showingBw) {
+            documentState.showingBw = false;
+            documentState.showingMap = true;
+        } else {
+            documentState.showingMap = !documentState.showingMap;
+        }
         $("showOriginal").textContent = documentState.showingMap ? "Show Original" : "Show Value Map";
         documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
@@ -2806,6 +2971,101 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             setMapStatus(error.message || "The browser could not create the PNG.", true);
         }
+    }
+
+    function showBw() {
+        if (!documentState.bwData) return;
+        if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when the view changed.");
+        if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when the view changed.");
+        if (interactionState.paintMode) endPainting("Painting finished when the view changed.");
+        documentState.showingBw = !documentState.showingBw;
+        if (documentState.showingBw) documentState.showingMap = false;
+        $("showBw").textContent = documentState.showingBw ? "Show Previous View" : "Show B&W";
+        documentState.selectedPoint = documentState.measurement = null;
+        $("emptyResult").hidden = false;
+        $("measurementResult").hidden = true;
+        redraw();
+        updateMode();
+    }
+
+    async function saveBw() {
+        if (!documentState.bwData) return;
+        try {
+            const fileName = `${documentState.sourceName}-black-and-white.png`;
+            await BrowserPlatform.savePng(documentState.bwData, fileName);
+            setBwStatus(`Saved ${fileName}.`);
+        } catch (error) {
+            setBwStatus(error.message || "The browser could not create the B&W PNG.", true);
+        }
+    }
+
+    function setBwStatus(message, error = false) {
+        $("bwStatus").textContent = message;
+        $("bwStatus").className = `map-status${error ? " error" : ""}`;
+    }
+
+    function setMapOptionAvailability(available) {
+        [$("compareLeftSource"), $("compareRightSource")].forEach(select => {
+            const option = [...select.options].find(item => item.value === "map");
+            if (option) option.disabled = !available;
+            if (!available && select.value === "map") select.value = "original";
+        });
+    }
+
+    function comparisonData(source) {
+        if (source === "bw") return documentState.bwData;
+        if (source === "map") return documentState.mapData
+            ? CoreEngine.isolateValueMap(documentState.mapData, documentState.retainedValues, documentState.visibleValues)
+            : documentState.originalData;
+        return documentState.originalData;
+    }
+
+    function comparisonTitle(source) {
+        return source === "bw" ? "Continuous B&W" : source === "map" ? "Painter's Value Map" : "Original Color";
+    }
+
+    function drawComparisonCanvas(targetCanvas, targetContext, imageData) {
+        if (!imageData) return;
+        if (targetCanvas.width !== imageData.width) targetCanvas.width = imageData.width;
+        if (targetCanvas.height !== imageData.height) targetCanvas.height = imageData.height;
+        targetContext.putImageData(imageData, 0, 0);
+    }
+
+    function renderComparison() {
+        if (!comparisonActive || !documentState.originalData) return;
+        const leftSource = $("compareLeftSource").value;
+        const rightSource = $("compareRightSource").value;
+        drawComparisonCanvas(compareLeftCanvas, compareLeftContext, comparisonData(leftSource));
+        drawComparisonCanvas(compareRightCanvas, compareRightContext, comparisonData(rightSource));
+        $("compareLeftTitle").textContent = comparisonTitle(leftSource);
+        $("compareRightTitle").textContent = comparisonTitle(rightSource);
+        compareLeftViewport.refresh();
+        compareRightViewport.setView(compareLeftViewport.getView(), false);
+    }
+
+    function toggleComparison() {
+        if (phoneFeatureRestricted || !documentState.originalData) return;
+        if (!comparisonActive) {
+            if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when comparison opened.");
+            if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when comparison opened.");
+            if (interactionState.paintMode) endPainting("Painting finished when comparison opened.");
+        }
+        comparisonActive = !comparisonActive;
+        $("toggleComparison").setAttribute("aria-pressed", String(comparisonActive));
+        $("toggleComparison").textContent = comparisonActive ? "Return to Single Image" : "Compare Side by Side";
+        $("canvasContainer").hidden = comparisonActive;
+        $("comparisonWorkspace").hidden = !comparisonActive;
+        $("panImage").disabled = comparisonActive;
+        $("sampleValueOverlay").hidden = comparisonActive;
+        if (comparisonActive) {
+            renderComparison();
+            requestAnimationFrame(() => compareLeftViewport.fit());
+        } else {
+            viewport.refresh();
+            $("zoomLevel").textContent = `${Math.round(viewport.getScale() * 100)}%`;
+            updateSampleOverlay();
+        }
+        updateMode();
     }
 
     function renderLegend() {
@@ -2978,6 +3238,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.massSelectionMode) cancelMassSelection();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -3036,7 +3297,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setFeatureStatus(`${feature.name} was split into ${divisions.length} substantial value divisions. The largest division is highlighted.`);
     }
 
-    function updateMode() { $("modeIndicator").textContent = interactionState.explicitPanMode ? "Pan Image" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
+    function updateMode() { $("modeIndicator").textContent = comparisonActive ? "Side-by-Side Compare" : interactionState.explicitPanMode ? "Pan Image" : documentState.showingBw ? "Continuous B&W" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
 
     function resetMassing() {
         squintPreviewData = null;
@@ -3142,6 +3403,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.massSelectionMode) cancelMassSelection();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -3270,6 +3532,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginMassSelection() {
+        if (interactionState.massSelectionMode) {
+            cancelMassSelection("Mass selection finished.");
+            return;
+        }
         if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (!documentState.mapData) return;
         exitExplicitPanMode();
@@ -3277,6 +3543,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.drawingMode) cancelDrawing();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -3289,7 +3556,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("measurementResult").hidden = true;
         viewport.setInteractionEnabled(false);
         drawingSurface.classList.add("selecting-mass");
-        $("selectMass").disabled = true;
+        $("selectMass").disabled = false;
         $("selectMass").classList.add("active-mode");
         $("selectMass").setAttribute("aria-pressed", "true");
         $("applyMassValue").disabled = true;
@@ -3327,14 +3594,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginSelectionRefinement(mode) {
-        if (!interactionState.selectedMass || interactionState.selectionRefineMode) return;
+        if (!interactionState.selectedMass) return;
+        if (interactionState.selectionRefineMode === mode) {
+            cancelSelectionRefinement("Refinement cancelled; the selection is unchanged.");
+            return;
+        }
+        if (interactionState.selectionRefineMode) finishSelectionRefinement();
         interactionState.selectionRefineMode = mode;
         interactionState.drawingPointer = null;
         interactionState.lassoPoints = [];
         interactionState.lassoComplete = false;
         $("applyMassValue").disabled = true;
-        $("addSelectionArea").disabled = true;
-        $("removeSelectionArea").disabled = true;
+        $("addSelectionArea").disabled = false;
+        $("removeSelectionArea").disabled = false;
         const activeButton = mode === "add" ? $("addSelectionArea") : $("removeSelectionArea");
         activeButton.classList.add("active-mode");
         activeButton.setAttribute("aria-pressed", "true");
@@ -3461,6 +3733,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.massSelectionMode) cancelMassSelection();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -3721,6 +3994,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 );
                 documentState.showingMap = true;
+                documentState.showingBw = false;
                 $("showOriginal").textContent = "Show Original";
                 $("applySquint").disabled = false;
                 $("resetSquint").disabled = false;

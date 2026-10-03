@@ -1,6 +1,6 @@
 {
   "name": "tonal-value-designer",
-  "version": "2.11.1",
+  "version": "2.13.4",
   "private": true,
   "type": "module",
   "scripts": {

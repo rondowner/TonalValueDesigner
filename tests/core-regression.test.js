@@ -79,6 +79,22 @@ test("Core engine exposes the stable controller contract", () => {
     assert.deepEqual(Array.from(throughFacade.data), Array.from(direct.data));
 });
 
+test("Continuous B&W preserves perceptual lightness, dimensions, and alpha", () => {
+    const source = image(3, 1, x => x === 0
+        ? [255, 0, 0, 80]
+        : x === 1 ? [0, 255, 0, 160] : [0, 0, 255, 240]);
+    const result = TonalValueDesignerCoreEngine.generateGrayscale(source);
+    assert.equal(result.width, 3);
+    assert.equal(result.height, 1);
+    for (let index = 0; index < result.data.length; index += 4) {
+        assert.equal(result.data[index], result.data[index + 1]);
+        assert.equal(result.data[index], result.data[index + 2]);
+        assert.equal(result.data[index + 3], source.data[index + 3]);
+    }
+    assert.ok(result.data[4] > result.data[0]);
+    assert.ok(result.data[0] > result.data[8]);
+});
+
 test("Production bundle includes every core engine dependency", async () => {
     const bundle = await readFile(new URL("../js/app.bundle.js", import.meta.url), "utf8");
     assert.ok(bundle.includes("/* ===== squint.js ===== */"));
@@ -233,6 +249,18 @@ test("Tabs preserve independent control-panel scroll positions", async () => {
     assert.ok(appSource.includes("destinationHost.scrollTop = scrollPositions.get(button.id) || 0"));
 });
 
+test("Side-by-side comparison provides selectable sources and synchronized viewports", async () => {
+    const appSource = await readFile(new URL("../js/app.js", import.meta.url), "utf8");
+    const viewportSource = await readFile(new URL("../js/viewport.js", import.meta.url), "utf8");
+    const pageSource = await readFile(new URL("../index.html", import.meta.url), "utf8");
+    assert.ok(pageSource.includes('id="comparisonWorkspace"'));
+    assert.ok(pageSource.includes('id="compareLeftSource"'));
+    assert.ok(pageSource.includes('id="compareRightSource"'));
+    assert.ok(appSource.includes("function synchronizeComparison("));
+    assert.ok(appSource.includes("target.setView(state, false)"));
+    assert.ok(viewportSource.includes("function setView("));
+});
+
 test("Value measurement averages image data and reports Painter's Value", () => {
     const source = image(3, 3, (x, y) => {
         if (x === 1 && y === 1) return [255, 255, 255, 255];
@@ -264,7 +292,7 @@ test("Eye Trainer includes same-value Color Difference training", async () => {
     const trainerSource = await readFile(new URL("../value-eye-trainer/app.js", import.meta.url), "utf8");
     const trainerHtml = await readFile(new URL("../value-eye-trainer/index.html", import.meta.url), "utf8");
     assert.ok(trainerHtml.includes('id="colorDifferenceMode"'));
-    assert.ok(trainerHtml.includes("TONAL VALUE DESIGNER · v1.3"));
+    assert.ok(trainerHtml.includes("TONAL VALUE DESIGNER · v1.4"));
     assert.ok(trainerHtml.includes("Value Eye Trainer (working prototype)"));
     assert.ok(trainerHtml.indexOf('id="comparisonMode"') < trainerHtml.indexOf('id="identificationMode"'));
     assert.ok(trainerSource.includes("mode==='colorDifference'"));
@@ -410,6 +438,114 @@ test("Feature splitting assigns pixels to retained Painter's Values", () => {
         feature, map, [2, 8], TonalValueDesignerValueMap.grayForPainterValue
     );
     assert.deepEqual(divisions.map(item => [item.painterValue, item.size]), [[2, 12], [8, 8]]);
+});
+
+test("Mass selection and refinement buttons toggle off and restore interaction", async () => {
+    const source = await readFile(new URL("../js/app.js", import.meta.url), "utf8");
+    const names = ["beginMassSelection", "beginSelectionRefinement", "finishSelectionRefinement", "cancelSelectionRefinement", "clearMassSelectionState", "cancelMassSelection"];
+    const functions = names.map(name => {
+        const match = source.match(new RegExp(`    function ${name}\\([^]*?\\n    \\}`));
+        assert.ok(match, `Missing controller function ${name}`);
+        return match[0];
+    }).join("\n");
+    const elements = new Map();
+    const element = id => {
+        if (!elements.has(id)) elements.set(id, {
+            disabled: false, hidden: false, attributes: {}, classes: new Set(),
+            setAttribute(name, value) { this.attributes[name] = value; },
+            classList: { add(value) { elements.get(id).classes.add(value); }, remove(value) { elements.get(id).classes.delete(value); } }
+        });
+        return elements.get(id);
+    };
+    const state = createInteractionState();
+    const documentState = { mapData: {}, showingMap: true };
+    let interactionEnabled = true;
+    const viewport = { setInteractionEnabled(value) { interactionEnabled = value; } };
+    const factory = new Function("interactionState", "documentState", "$", "viewport", "drawingSurface", `
+        let squintPreviewData = null;
+        const redraw = () => {}, setMassSelectionStatus = () => {}, exitExplicitPanMode = () => {};
+        ${functions}
+        return { beginMassSelection, beginSelectionRefinement };
+    `);
+    const controls = factory(state, documentState, element, viewport, element("surface"));
+    controls.beginMassSelection();
+    assert.equal(state.massSelectionMode, true);
+    assert.equal(element("selectMass").disabled, false);
+    assert.equal(interactionEnabled, false);
+    const selection = { size: 12 };
+    state.selectedMass = selection;
+    controls.beginSelectionRefinement("remove");
+    assert.equal(element("removeSelectionArea").disabled, false);
+    assert.equal(element("removeSelectionArea").attributes["aria-pressed"], "true");
+    controls.beginSelectionRefinement("remove");
+    assert.equal(state.selectionRefineMode, null);
+    assert.equal(state.selectedMass, selection);
+    assert.equal(element("removeSelectionArea").attributes["aria-pressed"], "false");
+    controls.beginSelectionRefinement("add");
+    controls.beginSelectionRefinement("remove");
+    assert.equal(state.selectionRefineMode, "remove");
+    assert.equal(element("addSelectionArea").attributes["aria-pressed"], "false");
+    controls.beginMassSelection();
+    assert.equal(state.massSelectionMode, false);
+    assert.equal(state.selectionRefineMode, null);
+    assert.equal(state.selectedMass, null);
+    assert.equal(interactionEnabled, true);
+    assert.equal(element("selectMass").attributes["aria-pressed"], "false");
+});
+
+test("Trainer half-step challenges respect range and comparison credit", async () => {
+    const source = await readFile(new URL("../value-eye-trainer/app.js", import.meta.url), "utf8");
+    const math = source.slice(source.indexOf("const clamp="), source.indexOf("function initializeQaScale"));
+    const generation = source.slice(source.indexOf("function randomTenth"), source.indexOf("const COLOR_DIRECTIONS"));
+    const trainer = new Function("els", `${math}\n${generation}\nreturn {makeComparison,comparisonCredit,rgbToLab};`)({ comparisonRange: { value: "1" } });
+    for (let attempt = 0; attempt < 500; attempt += 1) {
+        const challenge = trainer.makeComparison();
+        for (const swatch of [challenge.first, challenge.second]) {
+            assert.equal(Number.isInteger(swatch.value * 2), true);
+            assert.ok(Math.abs(1 + 9 * trainer.rgbToLab(swatch.rgb) / 100 - swatch.value) < .1);
+        }
+        assert.ok(challenge.difference <= 1);
+        assert.equal(trainer.comparisonCredit(challenge.relation, challenge.relation, challenge.difference), 10);
+    }
+    assert.equal(trainer.comparisonCredit("same", "lighter", .5), 5);
+    assert.equal(trainer.comparisonCredit("same", "darker", .5), 5);
+    assert.equal(trainer.comparisonCredit("same", "lighter", 1), 0);
+    assert.equal(trainer.comparisonCredit("darker", "lighter", .5), 0);
+    assert.equal(trainer.comparisonCredit("same", "same", 0), 10);
+});
+
+test("Guidance remembers dismissals and supports skip, help, and reset", async () => {
+    const source = await readFile(new URL("../js/guidance.js", import.meta.url), "utf8");
+    const nodes = new Map();
+    const node = id => {
+        if (!nodes.has(id)) nodes.set(id, {
+            id, open: false, textContent: "", handlers: {},
+            addEventListener(type, action) { this.handlers[type] = action; },
+            replaceChildren(...items) { this.items = items; },
+            showModal() { this.open = true; }, close() { this.open = false; },
+            click() { this.onclick?.(); this.handlers.click?.(); }
+        });
+        return nodes.get(id);
+    };
+    const stored = new Map();
+    const storage = { getItem: key => stored.get(key), setItem: (key, value) => stored.set(key, value) };
+    const document = { getElementById: node, createElement: () => ({}), querySelector: () => node("mapTabButton") };
+    const setup = new Function("document", "localStorage", source.replace("export default function", "function") + "\nreturn setupGuidance;")(document, storage);
+    setup();
+    assert.equal(node("guidanceDialog").open, true);
+    node("guidanceContinue").click();
+    setup();
+    assert.equal(node("guidanceDialog").open, false);
+    node("mapTabButton").click();
+    assert.equal(node("guidanceTitle").textContent, "Create a Value Map");
+    node("guidanceSkip").click();
+    node("massingTabButton").click();
+    assert.equal(node("guidanceDialog").open, false);
+    node("openGuidance").click();
+    assert.equal(node("guidanceDialog").open, true);
+    node("guidanceReset").click();
+    assert.equal(node("guidanceTitle").textContent, "Welcome to TonalValueDesigner");
+    assert.equal(JSON.parse(stored.get("tvd-guidance-v1")).skip, false);
 });
 
 let failed = 0;

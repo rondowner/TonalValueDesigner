@@ -1,14 +1,15 @@
 ﻿"use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.11.1";
-import CoreEngine from "./coreEngine.js?v=2.11.1";
-import TonalValueDesignerViewport from "./viewport.js?v=2.11.1";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.11.1";
-import BrowserPlatform from "./browserPlatform.js?v=2.11.1";
-import createEditHistory from "./editHistory.js?v=2.11.1";
-import createDocumentState from "./documentState.js?v=2.11.1";
-import createInteractionState from "./interactionState.js?v=2.11.1";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.11.1";
+import TonalValueDesignerVersion from "./version.js?v=2.13.4";
+import CoreEngine from "./coreEngine.js?v=2.13.4";
+import TonalValueDesignerViewport from "./viewport.js?v=2.13.4";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.13.4";
+import BrowserPlatform from "./browserPlatform.js?v=2.13.4";
+import createEditHistory from "./editHistory.js?v=2.13.4";
+import createDocumentState from "./documentState.js?v=2.13.4";
+import createInteractionState from "./interactionState.js?v=2.13.4";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.13.4";
+import setupGuidance from "./guidance.js?v=2.13.4";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
@@ -27,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const phoneFeatureRestricted = BrowserPlatform.isPhone();
     $("featurePhoneNotice").hidden = !phoneFeatureRestricted;
     $("featureDesktopControls").hidden = phoneFeatureRestricted;
+    $("comparisonPhoneNotice").hidden = !phoneFeatureRestricted;
+    $("comparisonDesktopControls").hidden = phoneFeatureRestricted;
 
     const aboutDialog = $("aboutDialog");
     $("openAbout").onclick = () => {
@@ -45,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const interactionState = createInteractionState();
     const editHistory = createEditHistory({ limit: 10, applyOperation: applyMassingOperation });
     let squintPreviewData = null;
+    let comparisonActive = false;
+    let compareSyncing = false;
 
     const viewport = TonalValueDesignerViewport({
         container: $("canvasContainer"),
@@ -77,10 +82,35 @@ document.addEventListener("DOMContentLoaded", () => {
         createLayerCanvas: imageData => BrowserPlatform.canvasFromImageData(imageData)
     });
 
-    $("zoomIn").onclick = viewport.zoomIn;
-    $("zoomOut").onclick = viewport.zoomOut;
-    $("fitImage").onclick = viewport.fit;
-    $("actualSize").onclick = viewport.actual;
+    const compareLeftCanvas = $("compareLeftCanvas");
+    const compareRightCanvas = $("compareRightCanvas");
+    const compareLeftContext = compareLeftCanvas.getContext("2d", { willReadFrequently: false });
+    const compareRightContext = compareRightCanvas.getContext("2d", { willReadFrequently: false });
+    let compareLeftViewport;
+    let compareRightViewport;
+    function synchronizeComparison(source, state) {
+        if (!comparisonActive || compareSyncing) return;
+        compareSyncing = true;
+        const target = source === "left" ? compareRightViewport : compareLeftViewport;
+        target.setView(state, false);
+        compareSyncing = false;
+        $("zoomLevel").textContent = `${Math.round(state.scale * 100)}%`;
+    }
+    compareLeftViewport = TonalValueDesignerViewport({
+        container: $("compareLeftContainer"), stage: $("compareLeftStage"), canvas: compareLeftCanvas,
+        onChange: (scale, state) => synchronizeComparison("left", state)
+    });
+    compareRightViewport = TonalValueDesignerViewport({
+        container: $("compareRightContainer"), stage: $("compareRightStage"), canvas: compareRightCanvas,
+        onChange: (scale, state) => synchronizeComparison("right", state)
+    });
+
+    function toolbarViewport() { return comparisonActive ? compareLeftViewport : viewport; }
+
+    $("zoomIn").onclick = () => toolbarViewport().zoomIn();
+    $("zoomOut").onclick = () => toolbarViewport().zoomOut();
+    $("fitImage").onclick = () => toolbarViewport().fit();
+    $("actualSize").onclick = () => toolbarViewport().actual();
     $("sampleSize").onchange = () => documentState.selectedPoint && measure();
     $("targetValue").oninput = compare;
     $("targetTolerance").onchange = compare;
@@ -88,6 +118,11 @@ document.addEventListener("DOMContentLoaded", () => {
     $("generateMap").onclick = generateMap;
     $("showOriginal").onclick = toggleOriginal;
     $("saveMap").onclick = saveMap;
+    $("showBw").onclick = showBw;
+    $("saveBw").onclick = saveBw;
+    $("toggleComparison").onclick = toggleComparison;
+    $("compareLeftSource").onchange = renderComparison;
+    $("compareRightSource").onchange = renderComparison;
     $("insertValueComma").onclick = insertValueComma;
     $("drawArea").onclick = beginDrawing;
     $("applyMassing").onclick = applyMassing;
@@ -129,6 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setupTabs();
     setupLearningPanels();
+    setupGuidance();
     updateSquintLabels();
     setupSplitter();
     const drawingSurface = $("canvasContainer");
@@ -177,15 +213,17 @@ document.addEventListener("DOMContentLoaded", () => {
             canvas.height = image.naturalHeight;
             canvasRenderer.drawSourceImage(image);
             documentState.originalData = context.getImageData(0, 0, canvas.width, canvas.height);
+            documentState.bwData = CoreEngine.generateGrayscale(documentState.originalData);
             documentState.mapData = null;
             documentState.retainedValues = [];
             documentState.visibleValues = [];
             documentState.showingMap = false;
+            documentState.showingBw = false;
             documentState.selectedPoint = documentState.measurement = null;
             documentState.sourceName = file.name.replace(/\.[^.]+$/, "") || "value-map";
             resetMassing();
             resetFeatureAnalysis();
-            $("panImage").disabled = false;
+            $("panImage").disabled = comparisonActive;
             $("fileName").textContent = `${file.name} â€” ${canvas.width} Ã— ${canvas.height}`;
             $("imagePlaceholder").hidden = true;
             $("canvasContainer").hidden = false;
@@ -194,16 +232,31 @@ document.addEventListener("DOMContentLoaded", () => {
             $("measurementResult").hidden = true;
             $("showOriginal").disabled = true;
             $("saveMap").disabled = true;
+            $("showBw").disabled = false;
+            $("saveBw").disabled = false;
+            $("compareLeftSource").disabled = phoneFeatureRestricted;
+            $("compareRightSource").disabled = phoneFeatureRestricted;
+            $("toggleComparison").disabled = phoneFeatureRestricted;
+            setMapOptionAvailability(false);
+            setBwStatus("Continuous B&W is ready to view or save.");
             $("valueLegend").hidden = true;
             setMapStatus("Choose the Painter's Values you want to retain.");
             updateMode();
-            requestAnimationFrame(viewport.fit);
+            requestAnimationFrame(() => {
+                if (comparisonActive) {
+                    renderComparison();
+                    compareLeftViewport.fit();
+                } else {
+                    viewport.fit();
+                }
+            });
         } catch (error) {
             $("fileName").textContent = error.message || "TonalValueDesigner could not open that image.";
         }
     });
 
     function activeData() {
+        if (documentState.showingBw) return documentState.bwData || documentState.originalData;
         if (!documentState.showingMap) return documentState.originalData;
         return squintPreviewData || documentState.mapData || documentState.originalData;
     }
@@ -248,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
             $("eyeTrainerWorkspace").hidden = !trainerActive;
             $("layoutSplitter").hidden = trainerActive;
             $("appLayout").classList.toggle("eye-trainer-active", trainerActive);
-            if (!trainerActive) viewport.refresh();
+            if (!trainerActive) toolbarViewport().refresh();
             if (moveFocus) button.focus();
             requestAnimationFrame(() => {
                 const destinationHost = scrollHost();
@@ -322,7 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
             splitter.setAttribute("aria-valuemin", minimum);
             splitter.setAttribute("aria-valuemax", maximum);
             splitter.setAttribute("aria-valuenow", adjusted);
-            viewport.refresh();
+            toolbarViewport().refresh();
         }
         splitter.addEventListener("pointerdown", event => {
             if (window.innerWidth <= 900) return;
@@ -378,6 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 : null
         });
         updateSampleOverlay();
+        if (comparisonActive) renderComparison();
     }
 
     function updateSampleOverlay() {
@@ -420,12 +474,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 documentState.retainedValues = values;
                 documentState.visibleValues = values.slice();
                 documentState.showingMap = true;
+                documentState.showingBw = false;
                 documentState.selectedPoint = documentState.measurement = null;
                 $("emptyResult").hidden = false;
                 $("measurementResult").hidden = true;
                 $("showOriginal").disabled = false;
                 $("showOriginal").textContent = "Show Original";
                 $("saveMap").disabled = false;
+                setMapOptionAvailability(true);
                 prepareMassing(values);
                 renderLegend();
                 redraw();
@@ -444,7 +500,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when the view changed.");
         if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when the view changed.");
         if (interactionState.paintMode) endPainting("Painting finished when the view changed.");
-        documentState.showingMap = !documentState.showingMap;
+        if (documentState.showingBw) {
+            documentState.showingBw = false;
+            documentState.showingMap = true;
+        } else {
+            documentState.showingMap = !documentState.showingMap;
+        }
         $("showOriginal").textContent = documentState.showingMap ? "Show Original" : "Show Value Map";
         documentState.selectedPoint = documentState.measurement = null;
         $("emptyResult").hidden = false;
@@ -463,6 +524,101 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             setMapStatus(error.message || "The browser could not create the PNG.", true);
         }
+    }
+
+    function showBw() {
+        if (!documentState.bwData) return;
+        if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when the view changed.");
+        if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when the view changed.");
+        if (interactionState.paintMode) endPainting("Painting finished when the view changed.");
+        documentState.showingBw = !documentState.showingBw;
+        if (documentState.showingBw) documentState.showingMap = false;
+        $("showBw").textContent = documentState.showingBw ? "Show Previous View" : "Show B&W";
+        documentState.selectedPoint = documentState.measurement = null;
+        $("emptyResult").hidden = false;
+        $("measurementResult").hidden = true;
+        redraw();
+        updateMode();
+    }
+
+    async function saveBw() {
+        if (!documentState.bwData) return;
+        try {
+            const fileName = `${documentState.sourceName}-black-and-white.png`;
+            await BrowserPlatform.savePng(documentState.bwData, fileName);
+            setBwStatus(`Saved ${fileName}.`);
+        } catch (error) {
+            setBwStatus(error.message || "The browser could not create the B&W PNG.", true);
+        }
+    }
+
+    function setBwStatus(message, error = false) {
+        $("bwStatus").textContent = message;
+        $("bwStatus").className = `map-status${error ? " error" : ""}`;
+    }
+
+    function setMapOptionAvailability(available) {
+        [$("compareLeftSource"), $("compareRightSource")].forEach(select => {
+            const option = [...select.options].find(item => item.value === "map");
+            if (option) option.disabled = !available;
+            if (!available && select.value === "map") select.value = "original";
+        });
+    }
+
+    function comparisonData(source) {
+        if (source === "bw") return documentState.bwData;
+        if (source === "map") return documentState.mapData
+            ? CoreEngine.isolateValueMap(documentState.mapData, documentState.retainedValues, documentState.visibleValues)
+            : documentState.originalData;
+        return documentState.originalData;
+    }
+
+    function comparisonTitle(source) {
+        return source === "bw" ? "Continuous B&W" : source === "map" ? "Painter's Value Map" : "Original Color";
+    }
+
+    function drawComparisonCanvas(targetCanvas, targetContext, imageData) {
+        if (!imageData) return;
+        if (targetCanvas.width !== imageData.width) targetCanvas.width = imageData.width;
+        if (targetCanvas.height !== imageData.height) targetCanvas.height = imageData.height;
+        targetContext.putImageData(imageData, 0, 0);
+    }
+
+    function renderComparison() {
+        if (!comparisonActive || !documentState.originalData) return;
+        const leftSource = $("compareLeftSource").value;
+        const rightSource = $("compareRightSource").value;
+        drawComparisonCanvas(compareLeftCanvas, compareLeftContext, comparisonData(leftSource));
+        drawComparisonCanvas(compareRightCanvas, compareRightContext, comparisonData(rightSource));
+        $("compareLeftTitle").textContent = comparisonTitle(leftSource);
+        $("compareRightTitle").textContent = comparisonTitle(rightSource);
+        compareLeftViewport.refresh();
+        compareRightViewport.setView(compareLeftViewport.getView(), false);
+    }
+
+    function toggleComparison() {
+        if (phoneFeatureRestricted || !documentState.originalData) return;
+        if (!comparisonActive) {
+            if (interactionState.drawingMode) cancelDrawing("Drawing cancelled when comparison opened.");
+            if (interactionState.massSelectionMode) cancelMassSelection("Selection cancelled when comparison opened.");
+            if (interactionState.paintMode) endPainting("Painting finished when comparison opened.");
+        }
+        comparisonActive = !comparisonActive;
+        $("toggleComparison").setAttribute("aria-pressed", String(comparisonActive));
+        $("toggleComparison").textContent = comparisonActive ? "Return to Single Image" : "Compare Side by Side";
+        $("canvasContainer").hidden = comparisonActive;
+        $("comparisonWorkspace").hidden = !comparisonActive;
+        $("panImage").disabled = comparisonActive;
+        $("sampleValueOverlay").hidden = comparisonActive;
+        if (comparisonActive) {
+            renderComparison();
+            requestAnimationFrame(() => compareLeftViewport.fit());
+        } else {
+            viewport.refresh();
+            $("zoomLevel").textContent = `${Math.round(viewport.getScale() * 100)}%`;
+            updateSampleOverlay();
+        }
+        updateMode();
     }
 
     function renderLegend() {
@@ -635,6 +791,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.massSelectionMode) cancelMassSelection();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -693,7 +850,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setFeatureStatus(`${feature.name} was split into ${divisions.length} substantial value divisions. The largest division is highlighted.`);
     }
 
-    function updateMode() { $("modeIndicator").textContent = interactionState.explicitPanMode ? "Pan Image" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
+    function updateMode() { $("modeIndicator").textContent = comparisonActive ? "Side-by-Side Compare" : interactionState.explicitPanMode ? "Pan Image" : documentState.showingBw ? "Continuous B&W" : documentState.showingMap ? "Painter's Value Map" : "Original"; }
 
     function resetMassing() {
         squintPreviewData = null;
@@ -799,6 +956,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.massSelectionMode) cancelMassSelection();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -927,6 +1085,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginMassSelection() {
+        if (interactionState.massSelectionMode) {
+            cancelMassSelection("Mass selection finished.");
+            return;
+        }
         if (squintPreviewData) resetSquint("Squint preview reset when another massing tool was selected.");
         if (!documentState.mapData) return;
         exitExplicitPanMode();
@@ -934,6 +1096,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.drawingMode) cancelDrawing();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -946,7 +1109,7 @@ document.addEventListener("DOMContentLoaded", () => {
         $("measurementResult").hidden = true;
         viewport.setInteractionEnabled(false);
         drawingSurface.classList.add("selecting-mass");
-        $("selectMass").disabled = true;
+        $("selectMass").disabled = false;
         $("selectMass").classList.add("active-mode");
         $("selectMass").setAttribute("aria-pressed", "true");
         $("applyMassValue").disabled = true;
@@ -984,14 +1147,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function beginSelectionRefinement(mode) {
-        if (!interactionState.selectedMass || interactionState.selectionRefineMode) return;
+        if (!interactionState.selectedMass) return;
+        if (interactionState.selectionRefineMode === mode) {
+            cancelSelectionRefinement("Refinement cancelled; the selection is unchanged.");
+            return;
+        }
+        if (interactionState.selectionRefineMode) finishSelectionRefinement();
         interactionState.selectionRefineMode = mode;
         interactionState.drawingPointer = null;
         interactionState.lassoPoints = [];
         interactionState.lassoComplete = false;
         $("applyMassValue").disabled = true;
-        $("addSelectionArea").disabled = true;
-        $("removeSelectionArea").disabled = true;
+        $("addSelectionArea").disabled = false;
+        $("removeSelectionArea").disabled = false;
         const activeButton = mode === "add" ? $("addSelectionArea") : $("removeSelectionArea");
         activeButton.classList.add("active-mode");
         activeButton.setAttribute("aria-pressed", "true");
@@ -1118,6 +1286,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interactionState.massSelectionMode) cancelMassSelection();
         if (!documentState.showingMap) {
             documentState.showingMap = true;
+            documentState.showingBw = false;
             $("showOriginal").textContent = "Show Original";
             updateMode();
         }
@@ -1378,6 +1547,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 );
                 documentState.showingMap = true;
+                documentState.showingBw = false;
                 $("showOriginal").textContent = "Show Original";
                 $("applySquint").disabled = false;
                 $("resetSquint").disabled = false;

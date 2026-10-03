@@ -1,12 +1,12 @@
 ﻿"use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.11.1";
-import TonalValueDesignerValueMap from "./valueMap.js?v=2.11.1";
-import TonalValueDesignerMassing from "./massing.js?v=2.11.1";
-import TonalValueDesignerMassSelection from "./massSelection.js?v=2.11.1";
-import TonalValueDesignerValueBrush from "./valueBrush.js?v=2.11.1";
-import TonalValueDesignerMeasurement from "./measurement.js?v=2.11.1";
-import createSquintEngine from "./squint.js?v=2.11.1";
+import TonalValueDesignerColor from "./color.js?v=2.13.4";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.13.4";
+import TonalValueDesignerMassing from "./massing.js?v=2.13.4";
+import TonalValueDesignerMassSelection from "./massSelection.js?v=2.13.4";
+import TonalValueDesignerValueBrush from "./valueBrush.js?v=2.13.4";
+import TonalValueDesignerMeasurement from "./measurement.js?v=2.13.4";
+import createSquintEngine from "./squint.js?v=2.13.4";
 
 const SquintEngine = createSquintEngine({ generateValueMap: TonalValueDesignerValueMap.generate });
 
@@ -30,6 +30,7 @@ const CoreEngine = Object.freeze({
 
     parseValues: TonalValueDesignerValueMap.parseValues,
     generateValueMap: TonalValueDesignerValueMap.generate,
+    generateGrayscale: TonalValueDesignerValueMap.grayscale,
     valueAt: TonalValueDesignerValueMap.valueAt,
     isolateValueMap: TonalValueDesignerValueMap.isolate,
     grayForPainterValue: TonalValueDesignerValueMap.grayForPainterValue,

@@ -68,21 +68,23 @@ function buildAnswers(){
   els.answers.setAttribute('aria-label',mode==='identification'?'Choose a value from 1 to 10':mode==='comparison'?'Compare the second swatch with the first':mode==='colorDifference'?'Identify the color direction of the second swatch':'Correct the second swatch one color direction at a time');
 }
 function randomTenth(min=1,max=10){return Math.round((min+Math.random()*(max-min))*10)/10}
+function randomHalf(){return (2+Math.floor(Math.random()*19))/2}
+function makeStepColor(value){const color=makeColor(value);return {...color,value,peek:cssRgb(grayForL(valueToL(value)))} }
+function comparisonCredit(guess,relation,difference){return guess===relation?10:guess==='same'&&difference===.5?5:0}
 function valueGroup(value){return Math.min(10,Math.floor(value))}
 function makeComparison(){
   const maximum=Number(els.comparisonRange.value);
   for(let attempt=0;attempt<120;attempt++){
     const same=Math.random()<.2;
-    const first=makeColor(randomTenth());
+    const first=makeStepColor(randomHalf());
     let second;
     if(same){
-      for(let retry=0;retry<30;retry++){second=makeColor(first.value);if(second.value===first.value)break}
-      if(!second||second.value!==first.value)continue;
+      second=makeStepColor(first.value);
     }else{
-      const delta=(Math.floor(Math.random()*(maximum*10))+1)/10;
+      const delta=(Math.floor(Math.random()*(maximum*2))+1)/2;
       const possible=[];if(first.value+delta<=10)possible.push(first.value+delta);if(first.value-delta>=1)possible.push(first.value-delta);
       if(!possible.length)continue;
-      second=makeColor(possible[Math.floor(Math.random()*possible.length)]);
+      second=makeStepColor(possible[Math.floor(Math.random()*possible.length)]);
       const measuredDifference=Math.abs(second.value-first.value);
       if(measuredDifference<.1||measuredDifference>maximum)continue;
     }
@@ -90,7 +92,7 @@ function makeComparison(){
     const relation=second.value===first.value?'same':second.value>first.value?'lighter':'darker';
     return {first,second,firstGroup,secondGroup,relation,difference:Math.round(Math.abs(second.value-first.value)*10)/10,maximum};
   }
-  const first=makeColor(5);
+  const first=makeStepColor(5);
   return {first,second:first,firstGroup:valueGroup(first.value),secondGroup:valueGroup(first.value),relation:'same',difference:0,maximum};
 }
 const COLOR_DIRECTIONS=[
@@ -143,7 +145,7 @@ function resetChallengeUi(){
 function newChallenge(){
   resetChallengeUi();
   if(mode==='identification'){
-    const generated=makeColor(randomTenth());current=generated;els.swatch.style.backgroundColor=current.color;
+    const generated=makeStepColor(randomHalf());current=generated;els.swatch.style.backgroundColor=current.color;
   }else if(mode==='comparison'){
     current=makeComparison();els.firstSwatch.style.backgroundColor=current.first.color;els.secondSwatch.style.backgroundColor=current.second.color;
   }else if(mode==='colorDifference'){
@@ -176,8 +178,8 @@ function answer(guess){
     const numericGuess=Number(guess),good=accepted(current.value);exact=good.includes(numericGuess);close=!exact&&Math.min(...good.map(x=>Math.abs(x-numericGuess)))===1;earned=exact?10:close?5:0;
     els.detail.textContent=`You chose ${numericGuess} · Exact value ${current.value.toFixed(1)}`;els.marker.style.left=`${((current.value-1)/9)*100}%`;els.comparisonBar.hidden=false;
   }else if(mode==='comparison'){
-    exact=guess===current.relation;close=!exact&&current.difference<=.4;earned=exact?10:close?5:0;
-    const chosen=guess==='same'?'the same':guess;els.detail.textContent=`You chose ${chosen} · First ${current.first.value.toFixed(1)} (Group ${current.firstGroup}) · Second ${current.second.value.toFixed(1)} (Group ${current.secondGroup}) · Difference ${current.difference.toFixed(1)}`;els.comparisonBar.hidden=true;
+    earned=comparisonCredit(guess,current.relation,current.difference);exact=earned===10;close=earned===5;
+    const chosen=guess==='same'?'the same':guess;els.detail.textContent=`You chose ${chosen} · First ${current.first.value.toFixed(1)} · Second ${current.second.value.toFixed(1)} · Difference ${current.difference.toFixed(1)}. ${close?'Nearly the same: a half-step difference earns partial credit.':`The second swatch is ${current.relation==='same'?'the same value':current.relation}.`}`;els.comparisonBar.hidden=true;
   }else{
     exact=guess===current.relation;earned=exact?10:0;
     els.detail.textContent=`You chose ${guess} · The second swatch is ${current.relation} · Both are Painter’s Value ${current.painterValue.toFixed(1)}`;els.comparisonBar.hidden=true;
@@ -194,6 +196,7 @@ function finish(){
 }
 function startRound(){round=history.length+1;question=0;points=0;results=[];els.round.textContent=round;els.summary.hidden=true;els.game.hidden=false;newChallenge()}
 function setMode(nextMode){
+  $('#valueStepNote').hidden=nextMode==='colorDifference'||nextMode==='colorCorrection';
   if(mode===nextMode)return;mode=nextMode;els.identificationMode.setAttribute('aria-pressed',String(mode==='identification'));els.comparisonMode.setAttribute('aria-pressed',String(mode==='comparison'));els.colorDifferenceMode.setAttribute('aria-pressed',String(mode==='colorDifference'));els.colorCorrectionMode.setAttribute('aria-pressed',String(mode==='colorCorrection'));
   els.comparisonSettings.hidden=mode!=='comparison';els.colorDifferenceNote.hidden=mode!=='colorDifference';els.colorCorrectionNote.hidden=mode!=='colorCorrection';els.swatch.hidden=mode!=='identification';els.comparisonSwatches.hidden=mode==='identification';els.scale.hidden=mode!=='identification';els.scaleHint.hidden=mode!=='identification';
   els.prompt.textContent=mode==='identification'?'What painter value is this?':mode==='comparison'?'Is the second swatch lighter, darker, or the same value?':mode==='colorDifference'?'Compared with the first swatch, which color direction has the second moved?':'What should change first to make the second swatch match the first?';buildAnswers();question=0;points=0;results=[];els.question.textContent='1';els.summary.hidden=true;els.game.hidden=false;newChallenge();

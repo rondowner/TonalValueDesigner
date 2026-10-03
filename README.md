@@ -1,4 +1,10 @@
-# TonalValueDesigner 2.11.1
+# TonalValueDesigner 2.13.4
+
+First-use guidance appears automatically and is remembered in this browser. Use **Help for this tool** to reopen the current tool's introduction. **Read the Full Introduction** opens About; **Skip Introductions** suppresses automatic prompts, and **Reset Introductions** enables them again.
+
+Value Eye Trainer v1.4 uses whole and half steps in Value Comparison and Value Identification. Comparison awards 10 points for the correct relation, 5 for Same when swatches differ by 0.5, and 0 otherwise. Generated RGB colors approximate their assigned lightness within display quantization limits.
+
+Selection controls are toggles: click **Select Mass** again to exit selection and restore normal image interaction. Click **Add Area** or **Remove Area** again to cancel its unfinished boundary while keeping the selected mass. You can also switch directly between Add Area and Remove Area.
 
 TonalValueDesigner is a browser-based studio tool that samples a photograph, reports CIELAB color, estimates Painter's Value on a 1-10 scale, and creates simplified value maps.
 
@@ -182,7 +188,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.11.1 was built on 2026-09-20.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.13.4 was built on 2026-10-03.
 
 TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.3 and is labeled as a working prototype.
 
@@ -217,3 +223,9 @@ Version 2.8.0 removes the remaining browser-canvas object from interaction state
 Version 2.9.0 moves pixel averaging and complete Painter's Value measurement into `js/measurement.js` behind core-engine contract version 2. Sampling now consumes active document `ImageData` directly instead of reading pixels back from the presentation canvas, making the result deterministic and host-neutral.
 
 This is an internal architecture change only. Algorithms, browser image types, UI behavior, and saved output remain unchanged from the v2.0.0 regression baseline.
+## Continuous B&W and Side-by-Side Compare
+
+- **Continuous B&W** removes color while preserving perceptual lightness without reducing the image to discrete steps. It can be viewed in the main workspace or saved as a PNG.
+- **Side-by-Side Compare** is available on computers and tablets. Choose Original Color, Continuous B&W, or Painter's Value Map independently for the left and right panes.
+- Pan or zoom either comparison pane and the other pane stays synchronized.
+- Phones retain the focused single-image workspace; B&W viewing and export remain available.

@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.11.1";
+import TonalValueDesignerColor from "./color.js?v=2.13.4";
 
 const TonalValueDesignerValueMap = (() => {
     const linearChannels = new Float64Array(256);
@@ -57,8 +57,7 @@ const TonalValueDesignerValueMap = (() => {
         return nearest;
     }
 
-    function grayForPainterValue(value) {
-        const targetLightness = (value - 1) * 100 / 9;
+    function grayForLightness(targetLightness) {
         let low = 0;
         let high = 255;
         for (let count = 0; count < 10; count += 1) {
@@ -68,6 +67,35 @@ const TonalValueDesignerValueMap = (() => {
             else high = middle;
         }
         return Math.max(0, Math.min(255, Math.round((low + high) / 2)));
+    }
+
+    function grayForPainterValue(value) {
+        return grayForLightness((value - 1) * 100 / 9);
+    }
+
+    function grayscale(sourceImageData) {
+        const output = new ImageData(
+            new Uint8ClampedArray(sourceImageData.data.length),
+            sourceImageData.width,
+            sourceImageData.height
+        );
+        const grayByRoundedLightness = new Uint8Array(1001);
+        for (let lightness = 0; lightness <= 1000; lightness += 1) {
+            grayByRoundedLightness[lightness] = grayForLightness(lightness / 10);
+        }
+        for (let index = 0; index < sourceImageData.data.length; index += 4) {
+            const lightness = lightnessFromRgb(
+                sourceImageData.data[index],
+                sourceImageData.data[index + 1],
+                sourceImageData.data[index + 2]
+            );
+            const gray = grayByRoundedLightness[Math.max(0, Math.min(1000, Math.round(lightness * 10)))];
+            output.data[index] = gray;
+            output.data[index + 1] = gray;
+            output.data[index + 2] = gray;
+            output.data[index + 3] = sourceImageData.data[index + 3];
+        }
+        return output;
     }
 
     function generate(sourceImageData, retainedValues) {
@@ -147,7 +175,7 @@ const TonalValueDesignerValueMap = (() => {
             .map(value => ({ value, gray: grayForPainterValue(value) }));
     }
 
-    return Object.freeze({ parseValues, generate, valueAt, isolate, makeLegend, grayForPainterValue });
+    return Object.freeze({ parseValues, generate, grayscale, valueAt, isolate, makeLegend, grayForPainterValue });
 })();
 
 export default TonalValueDesignerValueMap;
