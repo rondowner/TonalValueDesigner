@@ -55,7 +55,7 @@ Use this checklist after the automated suites pass and before publishing an arch
 - Test the complete workflow on Windows or another desktop platform.
 - Test Value Sampling on an iPhone-sized device.
 - Test drawing and massing on a tablet or stylus-capable device when available.
-# TVD 2.13.5 B&W and Comparison Checks
+# TVD 2.13.6 B&W and Comparison Checks
 
 1. Open a test image and choose **Create Value Map**.
 2. Select **Show B&W**. Confirm that the image becomes continuous grayscale and can still be sampled.
@@ -65,7 +65,7 @@ Use this checklist after the automated suites pass and before publishing an arch
 6. Pan, wheel-zoom, and use Fit Image/100%. Confirm both panes remain aligned.
 7. Return to Single Image and confirm sampling, value mapping, massing, and the crisp value label still work.
 8. On a phone, confirm the side-by-side controls are replaced by the phone notice and no comparison workspace opens.
-# TVD 2.13.5 Guidance and Eye Trainer Checks
+# TVD 2.13.6 Guidance and Eye Trainer Checks
 
 1. Open TVD. Dismiss the welcome with Get Started. Reload and confirm it does not reappear.
 2. Enter each tool tab for the first time. Confirm its introduction appears once and subsequent visits retain normal tab scrolling.
@@ -74,4 +74,4 @@ Use this checklist after the automated suites pass and before publishing an arch
 5. Choose Reset Introductions from Help. Confirm the welcome and first-use guidance become available again.
 6. Generate a value map and exercise Select Mass, Add (Drawn) Area, and Remove (Drawn) Area. Confirm introductions explain the controls and dismissing them allows the active action to continue.
 7. In embedded and standalone Eye Trainer, verify revealed Value Comparison values end in .0 or .5. Correct direction earns 10, Same at a half-step difference earns 5, and opposite direction earns 0.
-8. Confirm the Eye Trainer header shows v1.4 and TVD shows v2.13.5.
+8. Confirm the Eye Trainer header shows v1.4 and TVD shows v2.13.6.

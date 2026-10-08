@@ -4,7 +4,7 @@
 
 /* ===== version.js ===== */
 "use strict";
-const TonalValueDesignerVersion=Object.freeze({version:"2.13.5",buildDate:"2026-10-03"});
+const TonalValueDesignerVersion=Object.freeze({version:"2.13.6",buildDate:"2026-10-08"});
 
 /* ===== color.js ===== */
 "use strict";
@@ -2653,7 +2653,7 @@ document.addEventListener("DOMContentLoaded", () => {
             $("fileName").textContent = "Please choose an image file.";
             return;
         }
-        $("fileName").textContent = `Loading ${file.name}â€¦`;
+        $("fileName").textContent = `Loading ${file.name}...`;
         try {
             const image = await BrowserPlatform.loadImageFile(file);
             canvas.width = image.naturalWidth;
@@ -2671,7 +2671,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resetMassing();
             resetFeatureAnalysis();
             $("panImage").disabled = comparisonActive;
-            $("fileName").textContent = `${file.name} â€” ${canvas.width} Ã— ${canvas.height}`;
+            $("fileName").textContent = `${file.name} (${canvas.width} x ${canvas.height})`;
             $("imagePlaceholder").hidden = true;
             $("canvasContainer").hidden = false;
             $("viewportToolbar").hidden = false;

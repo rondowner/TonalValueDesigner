@@ -1,15 +1,15 @@
 ﻿"use strict";
 
-import TonalValueDesignerVersion from "./version.js?v=2.13.5";
-import CoreEngine from "./coreEngine.js?v=2.13.5";
-import TonalValueDesignerViewport from "./viewport.js?v=2.13.5";
-import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.13.5";
-import BrowserPlatform from "./browserPlatform.js?v=2.13.5";
-import createEditHistory from "./editHistory.js?v=2.13.5";
-import createDocumentState from "./documentState.js?v=2.13.5";
-import createInteractionState from "./interactionState.js?v=2.13.5";
-import createCanvasRenderer from "./canvasRenderer.js?v=2.13.5";
-import setupGuidance from "./guidance.js?v=2.13.5";
+import TonalValueDesignerVersion from "./version.js?v=2.13.6";
+import CoreEngine from "./coreEngine.js?v=2.13.6";
+import TonalValueDesignerViewport from "./viewport.js?v=2.13.6";
+import TonalValueDesignerFeatureSegmentation from "./featureSegmentation.js?v=2.13.6";
+import BrowserPlatform from "./browserPlatform.js?v=2.13.6";
+import createEditHistory from "./editHistory.js?v=2.13.6";
+import createDocumentState from "./documentState.js?v=2.13.6";
+import createInteractionState from "./interactionState.js?v=2.13.6";
+import createCanvasRenderer from "./canvasRenderer.js?v=2.13.6";
+import setupGuidance from "./guidance.js?v=2.13.6";
 
 document.addEventListener("DOMContentLoaded", () => {
     const $ = id => document.getElementById(id);
@@ -206,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
             $("fileName").textContent = "Please choose an image file.";
             return;
         }
-        $("fileName").textContent = `Loading ${file.name}â€¦`;
+        $("fileName").textContent = `Loading ${file.name}...`;
         try {
             const image = await BrowserPlatform.loadImageFile(file);
             canvas.width = image.naturalWidth;
@@ -224,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resetMassing();
             resetFeatureAnalysis();
             $("panImage").disabled = comparisonActive;
-            $("fileName").textContent = `${file.name} â€” ${canvas.width} Ã— ${canvas.height}`;
+            $("fileName").textContent = `${file.name} (${canvas.width} x ${canvas.height})`;
             $("imagePlaceholder").hidden = true;
             $("canvasContainer").hidden = false;
             $("viewportToolbar").hidden = false;

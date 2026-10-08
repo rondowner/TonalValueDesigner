@@ -1,12 +1,12 @@
 ﻿"use strict";
 
-import TonalValueDesignerColor from "./color.js?v=2.13.5";
-import TonalValueDesignerValueMap from "./valueMap.js?v=2.13.5";
-import TonalValueDesignerMassing from "./massing.js?v=2.13.5";
-import TonalValueDesignerMassSelection from "./massSelection.js?v=2.13.5";
-import TonalValueDesignerValueBrush from "./valueBrush.js?v=2.13.5";
-import TonalValueDesignerMeasurement from "./measurement.js?v=2.13.5";
-import createSquintEngine from "./squint.js?v=2.13.5";
+import TonalValueDesignerColor from "./color.js?v=2.13.6";
+import TonalValueDesignerValueMap from "./valueMap.js?v=2.13.6";
+import TonalValueDesignerMassing from "./massing.js?v=2.13.6";
+import TonalValueDesignerMassSelection from "./massSelection.js?v=2.13.6";
+import TonalValueDesignerValueBrush from "./valueBrush.js?v=2.13.6";
+import TonalValueDesignerMeasurement from "./measurement.js?v=2.13.6";
+import createSquintEngine from "./squint.js?v=2.13.6";
 
 const SquintEngine = createSquintEngine({ generateValueMap: TonalValueDesignerValueMap.generate });
 

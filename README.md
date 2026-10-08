@@ -1,4 +1,4 @@
-# TonalValueDesigner 2.13.5
+# TonalValueDesigner 2.13.6
 
 First-use guidance appears automatically and is remembered in this browser. Use **Help for this tool** to reopen the current tool's introduction. **Read the Full Introduction** opens About; **Skip Introductions** suppresses automatic prompts, and **Reset Introductions** enables them again.
 
@@ -188,7 +188,7 @@ These notes are available in the application under the collapsed **Measurement T
 
 ## Version
 
-The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.13.5 was built on 2026-10-03.
+The product header displays **TonalValueDesigner ©**. Its right side contains three lines: the current TVD version and build date, **Copyright © 2026 Ron Downer. All Rights Reserved.**, and the **About Tonal Value Designer** link. Version 2.13.6 was built on 2026-10-08.
 
 TonalValueDesigner and Value Eye Trainer use independent release numbers. Advance the TVD version whenever the main tool changes. Advance the Eye Trainer version whenever its embedded or standalone files change. Value Eye Trainer is currently v1.3 and is labeled as a working prototype.
 

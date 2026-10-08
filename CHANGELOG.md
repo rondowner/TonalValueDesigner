@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.13.6 - 2026-10-08
+
+- Replaced the rounded favicon peak with a crisp angular two-peak mountain range; regenerated browser and Apple icons.
+- Fixed corrupted punctuation beside the chosen filename and in its loading message. Dimensions now appear as plain text, for example Clouds1.jpg (612 x 407).
+
 ## 2.13.5 - 2026-10-03
 
 - Added the approved three-tone mountain favicon for browser tabs and bookmarks.
